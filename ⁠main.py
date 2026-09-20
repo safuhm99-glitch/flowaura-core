@@ -71,4 +71,4 @@ def send_whatsapp_message(phone_id, recipient_phone, text):
         headers=headers,
         json=payload
     )
-    return response.json()
+    return response.json() 
