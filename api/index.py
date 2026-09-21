@@ -1,104 +1,156 @@
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse
-import smtplib
-from email.message import EmailMessage
-import os
+from http.server import BaseHTTPRequestHandler
+import json
+from urllib.parse import parse_qs, urlparse
 
-app = FastAPI(title="SmartPulseAI Core & Dashboard", version="2.0")
+# تخزين مؤقت للطلبات (سجل العملاء والوسيط الذكي)
+ORDERS_DB = [
+    {
+        "id": 1,
+        "type": "منتج",
+        "query": "ساعة ذكية بسعر اقتصادي",
+        "status": "جارٍ البحث والمساومة...",
+        "date": "2026-09-21",
+    },
+    {
+        "id": 2,
+        "type": "خدمة",
+        "query": "تصميم شعار احترافي للمتجر",
+        "status": "تم التنفيذ بالذكاء الاصطناعي",
+        "date": "2026-09-21",
+    },
+]
 
-# إعدادات البريد الإلكتروني الرسمي
-SMTP_SERVER = "mail.smartpulseai.net"
-SMTP_PORT = 465
-EMAIL_USER = "info@smartpulseai.net"
-EMAIL_PASSWORD = "Ss778811&"
 
-# هيكل بيانات الخدمات، الباقات، والخصومات (يمكنك تعديلها في أي وقت)
-PRICING_PLANS = {
-    "basic": {"name": "الباقة الأساسية", "price": "199 ريال", "discount": "لا يوجد حالياً"},
-    "pro": {"name": "الباقة الاحترافية (Micro-SaaS)", "price": "499 ريال", "discount": "خصم 20% لفترة محدودة"},
-    "enterprise": {"name": "باقة الشركات", "price": "999 ريال", "discount": "خصم خاص عند الدفع السنوي"}
-}
+class handler(BaseHTTPRequestHandler):
 
-# قائمة مؤقتة لتخزين بيانات العملاء والطلبات (يمكن ربطها بقاعدة بيانات لاحقاً)
-LEADS_DATABASE = []
+  def do_GET(self):
+    parsed_path = urlparse(self.path)
+    path = parsed_path.path
 
-# 1. نقطة النهاية الرئيسية للموقع
-@app.get("/", response_class=HTMLResponse)
-async def home():
-    return """
-    <html>
-        <head><title>SmartPulseAI</title></head>
-        <body style="font-family: Arial; direction: rtl; text-align: center; padding: 50px;">
-            <h1>مرحباً بك في منصة SmartPulseAI</h1>
-            <p>المنصة تعمل بنجاح وجاهزة لاستقبال العملاء والخدمات الذكية.</p>
-            <a href="/dashboard" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">الذهاب إلى لوحة التحكم (Dashboard)</a>
-        </body>
-    </html>
-    """
+    if path == "/dashboard":
+      self.send_response(200)
+      self.send_header("Content-type", "text/html; charset=utf-8")
+      self.end_headers()
 
-# 2. استقبال بيانات العملاء (Leads) وحفظها وإرسال إشعار للإيميل
-@app.post("/api/lead")
-async def collect_lead(request: Request):
-    data = await request.json()
-    name = data.get("name", "عميل جديد")
-    phone = data.get("phone", "غير متوفر")
-    email = data.get("email", "غير متوفر")
-    message = data.get("message", "استفسار عام")
-    
-    lead_info = {"name": name, "phone": phone, "email": email, "message": message}
-    LEADS_DATABASE.append(lead_info)
-    
-    # إرسال إشعار إلى بريدك الرسمي
-    try:
-        msg = EmailMessage()
-        msg.set_content(f"تم استلام عميل/طلب جديد:\n\nالاسم: {name}\nالهاتف: {phone}\nالبريد: {email}\nالرسالة: {message}")
-        msg['Subject'] = "طلب جديد عبر منصة SmartPulseAI"
-        msg['From'] = EMAIL_USER
-        msg['To'] = EMAIL_USER
-        
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
-            smtp.login(EMAIL_USER, EMAIL_PASSWORD)
-            smtp.send_message(msg)
-    except Exception as e:
-        print(f"خطأ في إرسال البريد: {e}")
-        
-    return {"status": "success", "message": "تم حفظ البيانات وإرسال الإشعار بنجاح"}
+      # تصميم لوحة التحكم مع عرض سجل طلبات الوسيط الذكي
+      orders_html = ""
+      for o in ORDERS_DB:
+        orders_html += f"""
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px;">#{o['id']}</td>
+                    <td style="padding: 12px;"><b>{o['type']}</b></td>
+                    <td style="padding: 12px;">{o['query']}</td>
+                    <td style="padding: 12px; color: #2563eb;">{o['status']}</td>
+                    <td style="padding: 12px; color: #666;">{o['date']}</td>
+                </tr>
+                """
 
-# 3. استعراض الباقات والخصومات الحالية
-@app.get("/api/pricing")
-async def get_pricing():
-    return {"plans": PRICING_PLANS}
+      html_content = f"""
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>لوحة التحكم - المنظومة الذكية الشاملة (Omni-Flow)</title>
+                <style>
+                    body {{ font-family: Tahoma, sans-serif; background: #f8fafc; margin: 0; padding: 20px; }}
+                    .container {{ max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
+                    h1 {{ color: #1e293b; }}
+                    table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+                    th {{ background: #f1f5f9; padding: 12px; text-align: right; color: #334155; }}
+                    .btn {{ display: inline-block; background: #2563eb; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; margin-top: 20px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>لوحة تحكم الوسيط الذكي (Omni-Flow Dashboard)</h1>
+                    <p>مرحباً بكِ، صفية. هذه هي سجلات الطلبات وعمليات البحث والمساومة الآلية للعملاء:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>رقم الطلب</th>
+                                <th>النوع</th>
+                                <th>تفاصيل الطلب</th>
+                                <th>الحالة</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {orders_html}
+                        </tbody>
+                    </table>
+                    <a href="/" class="btn">العودة للرئيسية</a>
+                </div>
+            </body>
+            </html>
+            """
+      self.wfile.write(html_content.encode("utf-8"))
 
-# 4. لوحة التحكم المستقلة (Dashboard) لمتابعة سير العمل والعملاء والردود
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard():
-    leads_html = "".join([f"<li><b>{l['name']}</b> - {l['phone']} - {l['email']} | الرسالة: {l['message']}</li>" for l in LEADS_DATABASE])
-    if not leads_html:
-        leads_html = "<li>لا توجد بيانات مسجلة حتى الآن.</li>"
-        
-    return f"""
-    <html>
-        <head>
-            <title>لوحة التحكم - SmartPulseAI</title>
-            <meta charset="utf-8">
-        </head>
-        <body style="font-family: Arial; direction: rtl; padding: 30px; background: #f9f9f9;">
-            <h1>لوحة تحكم SmartPulseAI (Dashboard)</h1>
-            <hr>
-            <h3>📊 حالة النظام: <span style="color: green;">يعمل بكفاءة على Vercel</span></h3>
-            <h3>🏷️ الباقات والأسعار الحالية:</h3>
-            <ul>
-                <li><b>{PRICING_PLANS['basic']['name']}</b>: {PRICING_PLANS['basic']['price']} ({PRICING_PLANS['basic']['discount']})</li>
-                <li><b>{PRICING_PLANS['pro']['name']}</b>: {PRICING_PLANS['pro']['price']} ({PRICING_PLANS['pro']['discount']})</li>
-                <li><b>{PRICING_PLANS['enterprise']['name']}</b>: {PRICING_PLANS['enterprise']['price']} ({PRICING_PLANS['enterprise']['discount']})</li>
-            </ul>
-            <hr>
-            <h3>👥 سجل العملاء والطلبات الجديدة:</h3>
-            <ul>
-                {leads_html}
-            </ul>
-            <br>
-            <a href="/" style="background: #333; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px;">العودة للموقع الرئيسي</a>
-        </body>
-    </html>
-    """
+    else:
+      # الصفحة الرئيسية (واجهة المستخدم والمساعد الذكي)
+      self.send_response(200)
+      self.send_header("Content-type", "text/html; charset=utf-8")
+      self.end_headers()
+
+      html_content = """
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>المتظومة الذكية الشاملة - Omni-Flow</title>
+                <style>
+                    body { font-family: Tahoma, sans-serif; background: #0f172a; color: white; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+                    .card { background: #1e293b; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 600px; text-align: center; }
+                    h1 { color: #38bdf8; margin-bottom: 10px; }
+                    p { color: #94a3b8; margin-bottom: 30px; }
+                    textarea { width: 100%; height: 100px; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 16px; resize: none; margin-bottom: 15px; }
+                    button { background: #2563eb; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%; transition: background 0.3s; }
+                    button:hover { background: #1d4ed8; }
+                    .links { margin-top: 20px; }
+                    .links a { color: #38bdf8; text-decoration: none; margin: 0 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1>المتظومة الذكية الشاملة (Omni-Flow)</h1>
+                    <p>مساعدك التجاري والخدمي الآلي بالكامل. اكتب طلبك ودع الوسيط الذكي يتولى البحث أو المساومة نيابة عنك!</p>
+                    
+                    <form action="/submit-order" method="POST">
+                        <textarea name="query" placeholder="اكتب ما تبحث عنه هنا... (مثال: أريد شراء هاتف بأرخص سعر، أو أحتاج تصميم موقع إلكتروني)"></textarea>
+                        <button type="submit">إرسال الطلب للوسيط الذكي 🚀</button>
+                    </form>
+
+                    <div class="links">
+                        <a href="/dashboard">لوحة التحكم</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+      self.wfile.write(html_content.encode("utf-8"))
+
+  def do_POST(self):
+    parsed_path = urlparse(self.path)
+    path = parsed_path.path
+
+    if path == "/submit-order":
+      content_length = int(self.headers.get("Content-Length", 0))
+      post_data = self.rfile.read(content_length).decode("utf-8")
+      params = parse_qs(post_data)
+
+      user_query = params.get("query", ["طلب جديد"])[0]
+
+      # إضافة الطلب الجديد إلى قاعدة البيانات المؤقتة
+      new_id = len(ORDERS_DB) + 1
+      ORDERS_DB.append({
+          "id": new_id,
+          "type": "بحث ذكي / خدمة",
+          "query": user_query,
+          "status": "جاري التحليل والمساومة الآلية...",
+          "date": "2026-09-21",
+      })
+
+      # إعادة توجيه المستخدم إلى لوحة التحكم لرؤية طلبه مسجلاً
+      self.send_response(303)
+      self.send_header("Location", "/dashboard")
+      self.end_headers()
