@@ -25,7 +25,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             padding: 20px;
             direction: rtl;
             text-align: right;
-            transition: all 0.3s ease;
         }
         .container {
             max-width: 600px;
@@ -36,6 +35,12 @@ HTML_CONTENT = """<!DOCTYPE html>
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             border: 1px solid var(--border-color);
         }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
         .header {
             display: flex;
             flex-direction: column;
@@ -44,17 +49,11 @@ HTML_CONTENT = """<!DOCTYPE html>
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
             text-align: center;
-            position: relative;
         }
-        .lang-btn-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        /* الشعار الدائري الفخم المطابق لهويتك */
+        /* الشعار الدائري الفخم */
         .logo-badge {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             background: radial-gradient(circle, #1e293b 0%, #0b1329 100%);
             border-radius: 50%;
             display: flex;
@@ -63,18 +62,17 @@ HTML_CONTENT = """<!DOCTYPE html>
             border: 2px solid #3b82f6;
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
             margin-bottom: 10px;
-            position: relative;
         }
         .logo-badge::after {
             content: '⚡';
-            font-size: 40px;
+            font-size: 36px;
             background: linear-gradient(135deg, #60a5fa, #c084fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .logo-text h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 22px;
             color: #60a5fa;
             letter-spacing: 1px;
         }
@@ -87,10 +85,11 @@ HTML_CONTENT = """<!DOCTYPE html>
             background: #1e293b;
             color: white;
             border: 1px solid var(--border-color);
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 13px;
+            font-weight: bold;
             transition: background 0.2s;
         }
         .lang-btn:hover {
@@ -159,7 +158,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             background: #1e293b;
             color: #60a5fa;
             border: 1px solid #3b82f6;
-            padding: 12px;
+            padding: 14px;
             border-radius: 8px;
             width: 100%;
             font-size: 15px;
@@ -195,10 +194,12 @@ HTML_CONTENT = """<!DOCTYPE html>
 <body>
 
 <div class="container" id="main-view">
+    <div class="top-bar">
+        <button class="lang-btn" onclick="toggleLanguage()" id="lang-toggle-btn">Switch to English 🇬🇧</button>
+        <span style="font-size: 12px; color: var(--text-muted);">v2.6 Active</span>
+    </div>
+    
     <div class="header">
-        <div class="lang-btn-container">
-            <button class="lang-btn" onclick="toggleLanguage()" id="lang-toggle-btn">Switch to English 🇬🇧</button>
-        </div>
         <div class="logo-badge"></div>
         <div class="logo-text">
             <h1 id="brand-title">FlowAura</h1>
@@ -246,10 +247,12 @@ HTML_CONTENT = """<!DOCTYPE html>
 
 <!-- لوحة التحكم -->
 <div class="container dashboard-container" id="dashboard-view">
+    <div class="top-bar">
+        <button class="lang-btn" onclick="showStore()" id="btn-back-store">← العودة للمتجر</button>
+        <span style="font-size: 12px; color: var(--text-muted);">Dashboard</span>
+    </div>
+
     <div class="header">
-        <div class="lang-btn-container">
-            <button class="lang-btn" onclick="showStore()" id="btn-back-store">← العودة للمتجر</button>
-        </div>
         <div class="logo-badge"></div>
         <div class="logo-text">
             <h1 id="dash-title">FlowAura Dashboard</h1>
@@ -291,7 +294,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             returnTitle: "🔄 قسم طلبات الاسترجاع",
             lblReturnId: "رقم الطلب المراد استرجاعه",
             lblReturnReason: "سبب الاسترجاع بالتفصيل",
-            returnBtn: "⚠️ تقديم طلب الاسترجاع",
+            btnReturn: "⚠️ تقديم طلب الاسترجاع",
             dashboardNav: "📊 الانتقال إلى لوحة التحكم وسجل الطلبات",
             dashTitle: "FlowAura Dashboard",
             dashSubtitle: "سجل الطلبات والعمليات الفورية",
@@ -311,7 +314,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             returnTitle: "🔄 Returns Section",
             lblReturnId: "Order ID for Return",
             lblReturnReason: "Detailed Return Reason",
-            returnBtn: "⚠️ Submit Return Request",
+            btnReturn: "⚠️ Submit Return Request",
             dashboardNav: "📊 Go to Dashboard & Orders Log",
             dashTitle: "FlowAura Dashboard",
             dashSubtitle: "Orders Log & Real-time Operations",
@@ -353,11 +356,13 @@ HTML_CONTENT = """<!DOCTYPE html>
     function showDashboard() {
         document.getElementById('main-view').style.display = 'none';
         document.getElementById('dashboard-view').style.display = 'block';
+        window.scrollTo(0, 0);
     }
 
     function showStore() {
         document.getElementById('dashboard-view').style.display = 'none';
         document.getElementById('main-view').style.display = 'block';
+        window.scrollTo(0, 0);
     }
 
     function submitOrder() {
