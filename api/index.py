@@ -38,36 +38,36 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
         .header {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
             margin-bottom: 20px;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
+            text-align: center;
+            position: relative;
         }
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .lang-btn-container {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        .logo-img {
+            width: 110px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #3b82f6;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            margin-bottom: 10px;
         }
         .logo-text h1 {
             margin: 0;
-            font-size: 22px;
+            font-size: 24px;
             color: #60a5fa;
         }
         .logo-text p {
-            margin: 2px 0 0 0;
-            font-size: 12px;
+            margin: 4px 0 0 0;
+            font-size: 13px;
             color: var(--text-muted);
         }
         .lang-btn {
@@ -136,17 +136,27 @@ HTML_CONTENT = """<!DOCTYPE html>
         .btn-danger:hover {
             background: #dc2626;
         }
-        .dashboard-link {
+        .dashboard-btn-box {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
             text-align: center;
-            margin-top: 20px;
         }
-        .dashboard-link a {
+        .btn-dashboard {
+            background: #1e293b;
             color: #60a5fa;
-            text-decoration: none;
-            font-size: 14px;
+            border: 1px solid #3b82f6;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .dashboard-link a:hover {
-            text-decoration: underline;
+        .btn-dashboard:hover {
+            background: #334155;
+            color: #ffffff;
         }
         /* Dashboard Styles */
         .dashboard-container {
@@ -173,14 +183,15 @@ HTML_CONTENT = """<!DOCTYPE html>
 
 <div class="container" id="main-view">
     <div class="header">
-        <div class="logo-area">
-            <div class="logo-icon">⚡</div>
-            <div class="logo-text">
-                <h1 id="brand-title">FlowAura</h1>
-                <p id="brand-subtitle">المساعد الذكي للوساطة والتجارة</p>
-            </div>
+        <div class="lang-btn-container">
+            <button class="lang-btn" onclick="toggleLanguage()" id="lang-toggle-btn">Switch to English 🇬🇧</button>
         </div>
-        <button class="lang-btn" onclick="toggleLanguage()" id="lang-toggle-btn">Switch to English 🇬🇧</button>
+        <!-- الشعار البصري المعتمد -->
+        <img src="https://i.ibb.co/6R22h3H/logo.jpg" alt="FlowAura Logo" class="logo-img" id="store-logo-img">
+        <div class="logo-text">
+            <h1 id="brand-title">FlowAura</h1>
+            <p id="brand-subtitle">المساعد الذكي للوساطة والتجارة</p>
+        </div>
     </div>
 
     <!-- قسم الطلبات -->
@@ -202,7 +213,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <!-- قسم الاسترجاع -->
-    <div style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+    <div style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
         <div class="section-title" id="return-section-title">🔄 قسم طلبات الاسترجاع</div>
         <div class="form-group">
             <label id="lbl-return-id">رقم الطلب المراد استرجاعه</label>
@@ -215,31 +226,32 @@ HTML_CONTENT = """<!DOCTYPE html>
         <button class="btn btn-danger" onclick="submitReturn()" id="btn-return">⚠️ تقديم طلب الاسترجاع</button>
     </div>
 
-    <div class="dashboard-link">
-        <a href="#" onclick="showDashboard()" id="link-dashboard">📊 لوحة التحكم وسجل الطلبات</a>
+    <!-- زر لوحة التحكم البارز -->
+    <div class="dashboard-btn-box">
+        <button class="btn-dashboard" onclick="showDashboard()" id="btn-dashboard-nav">📊 الانتقال إلى لوحة التحكم وسجل الطلبات</button>
     </div>
 </div>
 
 <!-- لوحة التحكم -->
 <div class="container dashboard-container" id="dashboard-view">
     <div class="header">
-        <div class="logo-area">
-            <div class="logo-icon">📊</div>
-            <div class="logo-text">
-                <h1>FlowAura Dashboard</h1>
-                <p>سجل الطلبات والعمليات الفورية</p>
-            </div>
+        <div class="lang-btn-container">
+            <button class="lang-btn" onclick="showStore()" id="btn-back-store">← العودة للمتجر</button>
         </div>
-        <button class="lang-btn" onclick="showStore()">← العودة للمتجر</button>
+        <img src="https://i.ibb.co/6R22h3H/logo.jpg" alt="FlowAura Logo" class="logo-img">
+        <div class="logo-text">
+            <h1 id="dash-title">FlowAura Dashboard</h1>
+            <p id="dash-subtitle">سجل الطلبات والعمليات الفورية</p>
+        </div>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th>التاريخ</th>
-                <th>نوع الطلب</th>
-                <th>التفاصيل / السبب</th>
-                <th>الحالة</th>
+                <th id="th-date">التاريخ</th>
+                <th id="th-type">نوع الطلب</th>
+                <th id="th-details">التفاصيل / السبب</th>
+                <th id="th-status">الحالة</th>
             </tr>
         </thead>
         <tbody id="orders-table-body">
@@ -268,7 +280,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             lblReturnId: "رقم الطلب المراد استرجاعه",
             lblReturnReason: "سبب الاسترجاع بالتفصيل",
             returnBtn: "⚠️ تقديم طلب الاسترجاع",
-            dashboardLink: "📊 لوحة التحكم وسجل الطلبات"
+            dashboardNav: "📊 الانتقال إلى لوحة التحكم وسجل الطلبات",
+            dashTitle: "FlowAura Dashboard",
+            dashSubtitle: "سجل الطلبات والعمليات الفورية",
+            backStore: "← العودة للمتجر",
+            thDate: "التاريخ",
+            thType: "نوع الطلب",
+            thDetails: "التفاصيل / السبب",
+            thStatus: "الحالة"
         },
         en: {
             brandSubtitle: "AI Assistant for Brokerage & Commerce",
@@ -281,7 +300,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             lblReturnId: "Order ID for Return",
             lblReturnReason: "Detailed Return Reason",
             returnBtn: "⚠️ Submit Return Request",
-            dashboardLink: "📊 Dashboard & Orders Log"
+            dashboardNav: "📊 Go to Dashboard & Orders Log",
+            dashTitle: "FlowAura Dashboard",
+            dashSubtitle: "Orders Log & Real-time Operations",
+            backStore: "← Back to Store",
+            thDate: "Date",
+            thType: "Order Type",
+            thDetails: "Details / Reason",
+            thStatus: "Status"
         }
     };
 
@@ -300,8 +326,16 @@ HTML_CONTENT = """<!DOCTYPE html>
         document.getElementById('return-section-title').innerText = translations[currentLang].returnTitle;
         document.getElementById('lbl-return-id').innerText = translations[currentLang].lblReturnId;
         document.getElementById('lbl-return-reason').innerText = translations[currentLang].lblReturnReason;
-        document.getElementById('btn-return').innerText = translations[currentLang].returnBtn;
-        document.getElementById('link-dashboard').innerText = translations[currentLang].dashboardLink;
+        document.getElementById('btn-return').innerText = translations[currentLang].btnReturn;
+        document.getElementById('btn-dashboard-nav').innerText = translations[currentLang].dashboardNav;
+        
+        document.getElementById('dash-title').innerText = translations[currentLang].dashTitle;
+        document.getElementById('dash-subtitle').innerText = translations[currentLang].dashSubtitle;
+        document.getElementById('btn-back-store').innerText = translations[currentLang].backStore;
+        document.getElementById('th-date').innerText = translations[currentLang].thDate;
+        document.getElementById('th-type').innerText = translations[currentLang].thType;
+        document.getElementById('th-details').innerText = translations[currentLang].thDetails;
+        document.getElementById('th-status').innerText = translations[currentLang].thStatus;
     }
 
     function showDashboard() {
