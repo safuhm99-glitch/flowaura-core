@@ -5,13 +5,13 @@ import os
 from urllib.parse import parse_qs, urlparse
 import requests
 
-# قراءة التوكن ومعرف الأدمن من متغيرات البيئة بأمان تام لتجنب تنبيهات الأمان
+# قراءة التوكن ومعرف الأدمن من متغيرات البيئة بأمان تام
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID")
 
 
 def send_telegram_message(chat_id, message, reply_markup=None):
-  """دالة لإرسال رسائل أو ردود إلى تليجرام"""
+  """دالة لإرسال رسائل أو تنبيهات إلى تليجرام"""
   if not TELEGRAM_BOT_TOKEN:
     print("Error: TELEGRAM_BOT_TOKEN is not set.")
     return None
@@ -47,6 +47,9 @@ ORDERS_DB = [
         "date": "2026-09-24",
     },
 ]
+
+# قاعدة بيانات مؤقتة لطلبات الاسترجاع
+REFUNDS_DB = []
 
 
 class handler(BaseHTTPRequestHandler):
@@ -94,6 +97,20 @@ class handler(BaseHTTPRequestHandler):
                 </tr>
                 """
 
+      refunds_html = ""
+      if not REFUNDS_DB:
+        refunds_html = '<tr><td colspan="4" style="padding: 15px; text-align: center; color: #94a3b8;">لا توجد طلبات استرجاع حالياً</td></tr>'
+      else:
+        for r in REFUNDS_DB:
+          refunds_html += f"""
+                    <tr style="border-bottom: 1px solid #334155;">
+                        <td style="padding: 12px; color: #f87171;">#{r['id']}</td>
+                        <td style="padding: 12px; color: #38bdf8;">الطلب #{r['order_id']}</td>
+                        <td style="padding: 12px; color: #f8fafc;">{r['reason']}</td>
+                        <td style="padding: 12px; color: #fbbf24;">{r['date']}</td>
+                    </tr>
+                    """
+
       html_content = f"""
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
@@ -103,24 +120,25 @@ class handler(BaseHTTPRequestHandler):
                 <style>
                     body {{ font-family: Tahoma, sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }}
                     .container {{ max-width: 1100px; margin: auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }}
-                    h1 {{ color: #38bdf8; }}
-                    table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+                    h1, h2 {{ color: #38bdf8; }}
+                    table {{ width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 30px; }}
                     th {{ background: #334155; padding: 12px; text-align: right; color: #38bdf8; }}
-                    .btn {{ display: inline-block; background: #2563eb; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; margin-top: 20px; }}
+                    .btn {{ display: inline-block; background: #2563eb; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; margin-top: 10px; }}
                     .btn:hover {{ background: #1d4ed8; }}
                 </style>
             </head>
             <body>
                 <div class="container">
                     <h1>لوحة تحكم متجر FlowAura الذكي</h1>
-                    <p>مرحباً بكِ، صفية. هذه سجلات الطلبات والعروض الواردة:</p>
+                    
+                    <h2>📦 سجل الطلبات</h2>
                     <table>
                         <thead>
                             <tr>
                                 <th>رقم الطلب</th>
                                 <th>نوع الطلب</th>
                                 <th>تفاصيل الطلب</th>
-                                <th>محاكاة العرض / المساومة</th>
+                                <th>العرض</th>
                                 <th>الحالة</th>
                                 <th>التاريخ</th>
                             </tr>
@@ -129,7 +147,23 @@ class handler(BaseHTTPRequestHandler):
                             {orders_html}
                         </tbody>
                     </table>
-                    <a href="/" class="btn">العودة للرئيسية</a>
+
+                    <h2>🔄 سجل طلبات الاسترجاع</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>رقم الاسترجاع</th>
+                                <th>رقم الطلب الأصلي</th>
+                                <th>سبب الاسترجاع</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {refunds_html}
+                        </tbody>
+                    </table>
+
+                    <a href="/" class="btn">العودة للرئيسية ومتجر الطلبات</a>
                 </div>
             </body>
             </html>
@@ -150,21 +184,24 @@ class handler(BaseHTTPRequestHandler):
                 <title>متجر FlowAura الذكي</title>
                 <style>
                     body { font-family: Tahoma, sans-serif; background: #0f172a; color: white; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-                    .card { background: #1e293b; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 600px; text-align: center; margin: 20px; }
-                    h1 { color: #38bdf8; margin-bottom: 10px; }
-                    p { color: #94a3b8; margin-bottom: 30px; }
-                    select, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
-                    textarea { height: 90px; resize: none; }
+                    .card { background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 600px; text-align: center; margin: 20px; }
+                    h1 { color: #38bdf8; margin-bottom: 10px; font-size: 24px; }
+                    h3 { color: #f87171; margin-top: 30px; margin-bottom: 10px; font-size: 20px; }
+                    p { color: #94a3b8; margin-bottom: 20px; font-size: 14px; }
+                    select, textarea, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 15px; margin-bottom: 12px; box-sizing: border-box; }
+                    textarea { height: 80px; resize: none; }
                     button { background: #2563eb; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%; transition: background 0.3s; }
                     button:hover { background: #1d4ed8; }
+                    .refund-btn { background: #dc2626; }
+                    .refund-btn:hover { background: #b91c1c; }
                     .links { margin-top: 20px; }
-                    .links a { color: #38bdf8; text-decoration: none; margin: 0 10px; }
+                    .links a { color: #38bdf8; text-decoration: none; margin: 0 10px; font-size: 14px; }
                 </style>
             </head>
             <body>
                 <div class="card">
                     <h1>متجر FlowAura الذكي</h1>
-                    <p>مساعدك التجاري والخدمي. اطلب منتجاً أو خدمة وسيتولى النظام معالجتها وإرسال إشعارك!</p>
+                    <p>أرسل طلبك الجديد وسيتم معالجته وإشعارك فوراً.</p>
                     
                     <form action="/submit-order" method="POST">
                         <select name="order_type">
@@ -173,6 +210,16 @@ class handler(BaseHTTPRequestHandler):
                         </select>
                         <textarea name="query" placeholder="اكتب تفاصيل طلبك هنا..."></textarea>
                         <button type="submit">إرسال الطلب 🚀</button>
+                    </form>
+
+                    <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;">
+
+                    <h3>🔄 قسم طلبات الاسترجاع</h3>
+                    <p>هل واجهتك مشكلة وتريد استرجاع طلب سابق؟</p>
+                    <form action="/submit-refund" method="POST">
+                        <input type="text" name="order_id" placeholder="رقم الطلب المراد استرجاعه (مثال: 1)">
+                        <textarea name="reason" placeholder="اكتب سبب الاسترجاع بالتفصيل..."></textarea>
+                        <button type="submit" class="refund-btn">تقديم طلب الاسترجاع ⚠️</button>
                     </form>
 
                     <div class="links">
@@ -191,7 +238,7 @@ class handler(BaseHTTPRequestHandler):
     content_length = int(self.headers.get("Content-Length", 0))
     post_data = self.rfile.read(content_length).decode("utf-8")
 
-    # 1. استقبال الطلبات القادمة من الواجهة (Dashboard)
+    # 1. معالجة الطلبات الجديدة
     if path == "/submit-order":
       params = parse_qs(post_data)
       order_type = params.get("order_type", ["📦 منتج / وسيط"])[0]
@@ -215,7 +262,6 @@ class handler(BaseHTTPRequestHandler):
           "date": current_date,
       })
 
-      # إرسال إشعار لكِ على تليجرام إذا توفرت معرفات الأدمن
       if ADMIN_CHAT_ID:
         telegram_msg = (
             "🚨 *طلب جديد تم استقباله في متجر FlowAura!*\n\n"
@@ -230,7 +276,36 @@ class handler(BaseHTTPRequestHandler):
       self.send_header("Location", "/dashboard")
       self.end_headers()
 
-    # 2. استقبال الرسائل القادمة من بوت تليجرام التفاعلي (مثل /start)
+    # 2. معالجة طلبات الاسترجاع الجديدة
+    elif path == "/submit-refund":
+      params = parse_qs(post_data)
+      order_id = params.get("order_id", ["1"])[0]
+      reason = params.get("reason", ["بدون سبب"])[0]
+
+      current_date = datetime.now().strftime("%Y-%m-%d")
+      new_refund_id = len(REFUNDS_DB) + 1
+      REFUNDS_DB.append({
+          "id": new_refund_id,
+          "order_id": order_id,
+          "reason": reason,
+          "date": current_date,
+      })
+
+      if ADMIN_CHAT_ID:
+        telegram_msg = (
+            "🔄 *طلب استرجاع جديد تم تقديمه!*\n\n"
+            f"🆔 *رقم الاسترجاع:* #{new_refund_id}\n"
+            f"📦 *رقم الطلب الأصلي:* #{order_id}\n"
+            f"📝 *سبب الاسترجاع:* {reason}\n"
+            f"📅 *التاريخ:* {current_date}"
+        )
+        send_telegram_message(ADMIN_CHAT_ID, telegram_msg)
+
+      self.send_response(303)
+      self.send_header("Location", "/dashboard")
+      self.end_headers()
+
+    # 3. استقبال رسائل بوت تليجرام التفاعلي (مثل /start)
     else:
       try:
         data = json.loads(post_data)
@@ -241,7 +316,7 @@ class handler(BaseHTTPRequestHandler):
           if text.startswith("/start"):
             welcome_msg = (
                 "مرحباً بكِ يا صفية في بوت *FlowAura Store* 🌟\n\n"
-                "أنا مساعدك الذكي لاستقبال الطلبات وإدارتها."
+                "أنا مساعدك الذكي لاستقبال الطلبات، وإدارة المتابعات والاسترجاع."
             )
             keyboard = {
                 "inline_keyboard": [[{
@@ -253,8 +328,8 @@ class handler(BaseHTTPRequestHandler):
           else:
             send_telegram_message(
                 chat_id,
-                "تم استلام رسالتك بنجاح! سيتم معالجة طلبك قريباً بواسطة النظام"
-                " الذكي.",
+                "تم استلام رسالتك بنجاح! سيتم معالجة الطلب أو الاستعلام بواسطة"
+                " النظام الذكي.",
             )
       except Exception as e:
         print(f"Webhook Error: {e}")
