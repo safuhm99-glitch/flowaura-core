@@ -51,19 +51,32 @@ HTML_CONTENT = """<!DOCTYPE html>
             top: 0;
             left: 0;
         }
-        .logo-img {
-            width: 110px;
-            height: 110px;
-            object-fit: cover;
+        /* الشعار الدائري الفخم المطابق لهويتك */
+        .logo-badge {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #1e293b 0%, #0b1329 100%);
             border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border: 2px solid #3b82f6;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
             margin-bottom: 10px;
+            position: relative;
+        }
+        .logo-badge::after {
+            content: '⚡';
+            font-size: 40px;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         .logo-text h1 {
             margin: 0;
             font-size: 24px;
             color: #60a5fa;
+            letter-spacing: 1px;
         }
         .logo-text p {
             margin: 4px 0 0 0;
@@ -186,8 +199,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div class="lang-btn-container">
             <button class="lang-btn" onclick="toggleLanguage()" id="lang-toggle-btn">Switch to English 🇬🇧</button>
         </div>
-        <!-- الشعار البصري المعتمد -->
-        <img src="https://i.ibb.co/6R22h3H/logo.jpg" alt="FlowAura Logo" class="logo-img" id="store-logo-img">
+        <div class="logo-badge"></div>
         <div class="logo-text">
             <h1 id="brand-title">FlowAura</h1>
             <p id="brand-subtitle">المساعد الذكي للوساطة والتجارة</p>
@@ -238,7 +250,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div class="lang-btn-container">
             <button class="lang-btn" onclick="showStore()" id="btn-back-store">← العودة للمتجر</button>
         </div>
-        <img src="https://i.ibb.co/6R22h3H/logo.jpg" alt="FlowAura Logo" class="logo-img">
+        <div class="logo-badge"></div>
         <div class="logo-text">
             <h1 id="dash-title">FlowAura Dashboard</h1>
             <p id="dash-subtitle">سجل الطلبات والعمليات الفورية</p>
