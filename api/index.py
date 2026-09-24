@@ -1,16 +1,21 @@
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 import json
+import os
 from urllib.parse import parse_qs, urlparse
 import requests
 
-# إعدادات تليجرام
-TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
-ADMIN_CHAT_ID = "1998418269"
+# قراءة التوكن ومعرف الأدمن من متغيرات البيئة بأمان تام لتجنب تنبيهات الأمان
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID")
 
 
 def send_telegram_message(chat_id, message, reply_markup=None):
   """دالة لإرسال رسائل أو ردود إلى تليجرام"""
+  if not TELEGRAM_BOT_TOKEN:
+    print("Error: TELEGRAM_BOT_TOKEN is not set.")
+    return None
+
   url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
   payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
   if reply_markup:
@@ -50,12 +55,16 @@ class handler(BaseHTTPRequestHandler):
     parsed_path = urlparse(self.path)
     path = parsed_path.path
 
-    # مسار ربط الـ Webhook تلقائياً (يمكنك فتحه مرة واحدة عبر متصفحك: your-project.vercel.app/set-webhook)
+    # مسار ربط الـ Webhook تلقائياً
     if path == "/set-webhook":
+      if not TELEGRAM_BOT_TOKEN:
+        self.send_response(400)
+        self.end_headers()
+        self.wfile.write(b"Error: TELEGRAM_BOT_TOKEN is missing in environment.")
+        return
+
       host = self.headers.get("Host")
-      protocol = (
-          "https" if "localhost" not in host else "http"
-      )  # Vercel دائمًا HTTPS
+      protocol = "https" if "localhost" not in host else "http"
       webhook_url = f"{protocol}://{host}/"
 
       tg_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}"
@@ -206,15 +215,16 @@ class handler(BaseHTTPRequestHandler):
           "date": current_date,
       })
 
-      # إرسال إشعار لكِ على تليجرام
-      telegram_msg = (
-          "🚨 *طلب جديد تم استقباله في متجر FlowAura!*\n\n"
-          f"🆔 *رقم الطلب:* #{new_id}\n"
-          f"📦 *نوع الطلب:* {order_type}\n"
-          f"📝 *التفاصيل:* {user_query}\n"
-          f"💡 *العرض:* {simulated_offer}"
-      )
-      send_telegram_message(ADMIN_CHAT_ID, telegram_msg)
+      # إرسال إشعار لكِ على تليجرام إذا توفرت معرفات الأدمن
+      if ADMIN_CHAT_ID:
+        telegram_msg = (
+            "🚨 *طلب جديد تم استقباله في متجر FlowAura!*\n\n"
+            f"🆔 *رقم الطلب:* #{new_id}\n"
+            f"📦 *نوع الطلب:* {order_type}\n"
+            f"📝 *التفاصيل:* {user_query}\n"
+            f"💡 *العرض:* {simulated_offer}"
+        )
+        send_telegram_message(ADMIN_CHAT_ID, telegram_msg)
 
       self.send_response(303)
       self.send_header("Location", "/dashboard")
