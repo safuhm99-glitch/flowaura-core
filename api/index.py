@@ -1,8 +1,29 @@
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 import json
 from urllib.parse import parse_qs, urlparse
+import requests
 
-# قاعدة بيانات مؤقتة متطورة تدعم محاكاة عروض الأسعار والمساومة الآلية
+# إعدادات تليجرام
+TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
+ADMIN_CHAT_ID = "1998418269"
+
+
+def send_telegram_message(chat_id, message, reply_markup=None):
+  """دالة لإرسال رسائل أو ردود إلى تليجرام"""
+  url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+  payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
+  if reply_markup:
+    payload["reply_markup"] = reply_markup
+  try:
+    response = requests.post(url, json=payload, timeout=5)
+    return response.json()
+  except Exception as e:
+    print(f"Error sending telegram message: {e}")
+    return None
+
+
+# قاعدة بيانات مؤقتة للطلبات
 ORDERS_DB = [
     {
         "id": 1,
@@ -10,7 +31,7 @@ ORDERS_DB = [
         "query": "ساعة ذكية بسعر اقتصادي",
         "offer": "أفضل سعر موفر: 180 ريال (خصم 20%)",
         "status": "تمت المساومة بنجاح ✓",
-        "date": "2026-09-21",
+        "date": "2026-09-24",
     },
     {
         "id": 2,
@@ -18,7 +39,7 @@ ORDERS_DB = [
         "query": "تصميم شعار احترافي للمتجر",
         "offer": "مزود خدمة ذكي آلي - تسليم فوري",
         "status": "تم التنفيذ بالذكاء الاصطناعي",
-        "date": "2026-09-21",
+        "date": "2026-09-24",
     },
 ]
 
@@ -28,6 +49,23 @@ class handler(BaseHTTPRequestHandler):
   def do_GET(self):
     parsed_path = urlparse(self.path)
     path = parsed_path.path
+
+    # مسار ربط الـ Webhook تلقائياً (يمكنك فتحه مرة واحدة عبر متصفحك: your-project.vercel.app/set-webhook)
+    if path == "/set-webhook":
+      host = self.headers.get("Host")
+      protocol = (
+          "https" if "localhost" not in host else "http"
+      )  # Vercel دائمًا HTTPS
+      webhook_url = f"{protocol}://{host}/"
+
+      tg_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}"
+      resp = requests.get(tg_url).json()
+
+      self.send_response(200)
+      self.send_header("Content-type", "application/json; charset=utf-8")
+      self.end_headers()
+      self.wfile.write(json.dumps(resp, ensure_ascii=False).encode("utf-8"))
+      return
 
     if path == "/dashboard":
       self.send_response(200)
@@ -52,7 +90,7 @@ class handler(BaseHTTPRequestHandler):
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <title>لوحة تحكم الوسيط الذكي - Omni-Flow</title>
+                <title>لوحة تحكم متجر FlowAura الذكي</title>
                 <style>
                     body {{ font-family: Tahoma, sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }}
                     .container {{ max-width: 1100px; margin: auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }}
@@ -65,8 +103,8 @@ class handler(BaseHTTPRequestHandler):
             </head>
             <body>
                 <div class="container">
-                    <h1>لوحة تحكم الوسيط الذكي والخدمات (Omni-Flow Dashboard)</h1>
-                    <p>مرحباً بكِ، صفية. هذه هي سجلات الطلبات، نتائج البحث، وعروض الأسعار والمساومات الآلية:</p>
+                    <h1>لوحة تحكم متجر FlowAura الذكي</h1>
+                    <p>مرحباً بكِ، صفية. هذه سجلات الطلبات والعروض الواردة:</p>
                     <table>
                         <thead>
                             <tr>
@@ -100,7 +138,7 @@ class handler(BaseHTTPRequestHandler):
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>المتظومة الذكية الشاملة - Omni-Flow</title>
+                <title>متجر FlowAura الذكي</title>
                 <style>
                     body { font-family: Tahoma, sans-serif; background: #0f172a; color: white; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
                     .card { background: #1e293b; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 600px; text-align: center; margin: 20px; }
@@ -116,16 +154,16 @@ class handler(BaseHTTPRequestHandler):
             </head>
             <body>
                 <div class="card">
-                    <h1>المتظومة الذكية الشاملة (Omni-Flow)</h1>
-                    <p>مساعدك التجاري والخدمي الآلي. حدد نوع طلبك ودع الوسيط الذكي يتولى البحث، المساومة، أو التنفيذ الفوري!</p>
+                    <h1>متجر FlowAura الذكي</h1>
+                    <p>مساعدك التجاري والخدمي. اطلب منتجاً أو خدمة وسيتولى النظام معالجتها وإرسال إشعارك!</p>
                     
                     <form action="/submit-order" method="POST">
                         <select name="order_type">
-                            <option value="📦 منتج / وسيط">📦 منتج مادي (بحث عن أرخص سعر / تجارة عكسية)</option>
-                            <option value="⚡ خدمة فورية">⚡ خدمة فورية (تصميم، ترجمة، برمجة، استشارات)</option>
+                            <option value="📦 منتج / وسيط">📦 منتج مادي (بحث عن أرخص سعر)</option>
+                            <option value="⚡ خدمة فورية">⚡ خدمة فورية (تصميم، برمجة، استشارات)</option>
                         </select>
-                        <textarea name="query" placeholder="اكتب تفاصيل طلبك هنا بوضوح... (مثال: ابحث عن جوال ايفون 18 برو ماكس بأقل سعر، أو أحتاج تصميم شعار)"></textarea>
-                        <button type="submit">إرسال الطلب للوسيط الذكي 🚀</button>
+                        <textarea name="query" placeholder="اكتب تفاصيل طلبك هنا..."></textarea>
+                        <button type="submit">إرسال الطلب 🚀</button>
                     </form>
 
                     <div class="links">
@@ -141,26 +179,23 @@ class handler(BaseHTTPRequestHandler):
     parsed_path = urlparse(self.path)
     path = parsed_path.path
 
-    if path == "/submit-order":
-      content_length = int(self.headers.get("Content-Length", 0))
-      post_data = self.rfile.read(content_length).decode("utf-8")
-      params = parse_qs(post_data)
+    content_length = int(self.headers.get("Content-Length", 0))
+    post_data = self.rfile.read(content_length).decode("utf-8")
 
+    # 1. استقبال الطلبات القادمة من الواجهة (Dashboard)
+    if path == "/submit-order":
+      params = parse_qs(post_data)
       order_type = params.get("order_type", ["📦 منتج / وسيط"])[0]
       user_query = params.get("query", ["طلب جديد"])[0]
 
-      # محاكاة ذكية لعرض السعر والمساومة بناءً على نوع الطلب
-      if "منتج" in order_type:
-        simulated_offer = (
-            "تم التفاوض آلياً: تم توفير خصم 15% من أفضل مورد عالمي"
-        )
-        simulated_status = "جاري تأكيد الشحن ✓"
-      else:
-        simulated_offer = (
-            "تمت مطابقة المزود الآلي - جاهز للتسليم الفوري بالذكاء الاصطناعي"
-        )
-        simulated_status = "مكتمل وجاهز ⚡"
+      simulated_offer = (
+          "تم التفاوض آلياً: تم توفير خصم خاص من الموردين"
+          if "منتج" in order_type
+          else "جاهز للتسليم الفوري بالذكاء الاصطناعي"
+      )
+      simulated_status = "جاري المعالجة ✓"
 
+      current_date = datetime.now().strftime("%Y-%m-%d")
       new_id = len(ORDERS_DB) + 1
       ORDERS_DB.append({
           "id": new_id,
@@ -168,9 +203,53 @@ class handler(BaseHTTPRequestHandler):
           "query": user_query,
           "offer": simulated_offer,
           "status": simulated_status,
-          "date": "2026-09-21",
+          "date": current_date,
       })
+
+      # إرسال إشعار لكِ على تليجرام
+      telegram_msg = (
+          "🚨 *طلب جديد تم استقباله في متجر FlowAura!*\n\n"
+          f"🆔 *رقم الطلب:* #{new_id}\n"
+          f"📦 *نوع الطلب:* {order_type}\n"
+          f"📝 *التفاصيل:* {user_query}\n"
+          f"💡 *العرض:* {simulated_offer}"
+      )
+      send_telegram_message(ADMIN_CHAT_ID, telegram_msg)
 
       self.send_response(303)
       self.send_header("Location", "/dashboard")
       self.end_headers()
+
+    # 2. استقبال الرسائل القادمة من بوت تليجرام التفاعلي (مثل /start)
+    else:
+      try:
+        data = json.loads(post_data)
+        if "message" in data:
+          chat_id = data["message"]["chat"]["id"]
+          text = data["message"].get("text", "")
+
+          if text.startswith("/start"):
+            welcome_msg = (
+                "مرحباً بكِ يا صفية في بوت *FlowAura Store* 🌟\n\n"
+                "أنا مساعدك الذكي لاستقبال الطلبات وإدارتها."
+            )
+            keyboard = {
+                "inline_keyboard": [[{
+                    "text": "🌐 زيارة لوحة التحكم والطلب",
+                    "url": f"https://{self.headers.get('Host')}/dashboard",
+                }]]
+            }
+            send_telegram_message(chat_id, welcome_msg, keyboard)
+          else:
+            send_telegram_message(
+                chat_id,
+                "تم استلام رسالتك بنجاح! سيتم معالجة طلبك قريباً بواسطة النظام"
+                " الذكي.",
+            )
+      except Exception as e:
+        print(f"Webhook Error: {e}")
+
+      self.send_response(200)
+      self.send_header("Content-type", "application/json")
+      self.end_headers()
+      self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
