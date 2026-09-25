@@ -7,7 +7,7 @@ TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
 
 SERVER_ORDERS = [
-    { "id": 3, "date": "2026-09-25", "type": "خدمة رقمية", "details": "اشتراك شاهد", "status": "قيد المراجعة", "phone": "0533319433" },
+    { "id": 3, "date": "2026-09-25", "type": "خدمة رقمية", "details": "اشتراك شاهد VIP لمدة شهر", "status": "قيد المراجعة", "phone": "0533319433" },
     { "id": 2, "date": "2026-09-25", "type": "منتج مادي", "details": "حقيبة يد ماركة", "status": "قيد المراجعة", "phone": "0533319433" },
     { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة", "phone": "0500000000" }
 ]
@@ -17,7 +17,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowAura - متجر الوساطة الذكي</title>
+    <title>FlowAura - متجر الوساطة والخدمات الرقمية الذكي</title>
     <style>
         body {
             font-family: Tahoma, Arial, sans-serif;
@@ -78,16 +78,16 @@ HTML_CONTENT = """<!DOCTYPE html>
     <div class="header">
         <div class="logo">⚡</div>
         <h1>FlowAura</h1>
-        <p>متجر الوساطة والبحث الذكي للطلبات</p>
+        <p>متجر الوساطة والخدمات الرقمية الذكي</p>
     </div>
 
     <div>
-        <div style="color: #93c5fd; font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث)</div>
+        <div style="color: #93c5fd; font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث وخدمات)</div>
         <div class="form-group">
             <label>نوع الطلب</label>
             <select id="serviceType" onchange="updateLabel()">
                 <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر / توفير)</option>
-                <option value="خدمة رقمية">خدمة رقمية / وساطة برمجية</option>
+                <option value="خدمة رقمية">خدمة رقمية / اشتراكات وبرمجة</option>
                 <option value="استشارة تجارية">استشارة تجارية متخصصة</option>
                 <option value="طلب استرجاع">طلب استرجاع 🔄</option>
             </select>
@@ -97,8 +97,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             <input type="text" id="clientPhone" placeholder="مثال: 05xxxxxxxx">
         </div>
         <div class="form-group">
-            <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات، المقاس، الماركة، أو الرابط بدقة)</label>
-            <textarea id="orderDetails" rows="3" placeholder="مثال للملابس: أريد فستان سهرة أسود مقاس M | مثال للمنتجات: أريد كفر آيباد برو موديل 2024"></textarea>
+            <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات بدقة)</label>
+            <textarea id="orderDetails" rows="3" placeholder="مثال للخدمات الرقمية: أريد اشتراك شاهد VIP أو تصميم وبرمجة موقع إلكتروني..."></textarea>
         </div>
         <button class="btn" type="button" onclick="submitOrder()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
     </div>
@@ -179,10 +179,13 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         if (type === "استشارة تجارية") {
             label.innerText = "تفاصيل الاستشارة التجارية:";
-            detailsInput.placeholder = "مثال: أريد استشارة بخصوص تسعير منتج...";
+            detailsInput.placeholder = "مثال: أريد استشارة بخصوص فتح متجر إلكتروني وخطوات السجل التجاري...";
+        } else if (type === "خدمة رقمية") {
+            label.innerText = "تفاصيل الخدمة الرقمية:";
+            detailsInput.placeholder = "مثal: أريد اشتراك شاهد VIP، أو تصميم وبرمجة موقع وتطبيقات...";
         } else {
             label.innerText = "تفاصيل طلبك (اكتب المواصفات، المقاس، الماركة، أو الرابط بدقة):";
-            detailsInput.placeholder = "مثال للملابس: أريد فستان سهرة أسود مقاس M | مثال للمنتجات: أريد كفر آيباد برو موديل 2024";
+            detailsInput.placeholder = "مثال للملابس: أريد فستان سهرة أسود مقاس M | مثال للمنتجات: أريد كفر آيباد برو";
         }
     }
 
@@ -339,23 +342,27 @@ class handler(BaseHTTPRequestHandler):
                 chat_id = message["chat"]["id"]
                 text = message.get("text", "").strip()
 
+                # تفاعل ذكي للبوت ورد تلقائي حسب نص العميل
                 if text.startswith("/start"):
-                    reply_text = "✨ أهلاً بك في بوت FlowAura للوساطة والبحث الذكي!\n\n💬 أرسل استشارتك أو طلبك وسنقوم بخدمتك فوراً."
+                    reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والخدمات الرقمية!\n\n🤖 أنا مساعدك الذكي، يمكنني استقبال طلباتك، خدماتك الرقمية، استشاراتك، أو مساعدتك في تتبع طلباتك فوراً. كيف يمكنني خدمتك اليوم؟"
+                elif "رقم" in text or "طلبي" in text or "حالة" in text:
+                    # ميزة البحث الآلي عن الطلبات للعميل عبر تيليجرام
+                    reply_text = "🔍 مرحباً بك! يمكنك كتابة رقم طلبك مباشرة أو استخدام صفحة تتبع الطلبات في المتجر للاستعلام عن حالته بكل سهولة."
                 else:
-                    reply_text = "✅ تم استلام استشارتك أو طلبك بنجاح! سيتم مراجعتها من قِبل الإدارة والتواصل معك قريباً."
-                    
                     new_id = (max([o.get("id", 0) for o in SERVER_ORDERS]) + 1) if SERVER_ORDERS else 1
                     SERVER_ORDERS.insert(0, {
                         "id": new_id,
                         "date": "2026-09-25",
-                        "type": "استشارة / طلب تيليجرام",
+                        "type": "طلب عبر تيليجرام (تلقائي)",
                         "details": text,
                         "phone": f"Telegram ID: {chat_id}",
                         "status": "قيد المراجعة"
                     })
 
+                    reply_text = f"🤖✅ تم استلام طلبك وعمليات البحث الخاصة به بنجاح!\n\n📌 رقم طلبك الاصطناعي هو: #{new_id}\n⏳ جاري معالجة الطلب وخدمتك بأسرعเวลา ممکن."
+
                     try:
-                        alert_msg = f"🚨 طلب جديد عبر البوت!\n\n📌 رقم الطلب: #{new_id}\n💬 التفاصيل: {text}"
+                        alert_msg = f"🚨 طلب ذكي جديد عبر البوت!\n\n📌 رقم الطلب: #{new_id}\n💬 التفاصيل: {text}"
                         alert_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                         payload_alert = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": alert_msg}).encode('utf-8')
                         urllib.request.urlopen(urllib.request.Request(alert_url, data=payload_alert, headers={'Content-Type': 'application/json'}))
