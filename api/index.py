@@ -6,11 +6,12 @@ from urllib.parse import urlparse, parse_qs
 TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
 
-# قائمة الطلبات التي سيقوم المساعد الذكي بإدارتها وتحديثها آلياً
+# قائمة الطلبات المحدثة مع دعم الصور والروابط للمنتجات المادية
 SERVER_ORDERS = [
-    { "id": 3, "date": "2026-09-25", "type": "خدمة رقمية", "details": "اشتراك شاهد VIP لمدة شهر", "status": "تم التنفيذ بنجاح", "phone": "0533319433" },
-    { "id": 2, "date": "2026-09-25", "type": "منتج مادي", "details": "حقيبة يد ماركة", "status": "تم توفير المنتج / بانتظار الدفع", "phone": "0533319433" },
-    { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "جاري البحث وتوفير السعر", "phone": "0500000000" }
+    { "id": 4, "date": "2026-09-26", "type": "منتج مادي", "details": "فستان سهرة أسود طويل مقاس M", "image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b", "status": "🤖 الرجل الآلي يحلل الصورة ويبحث عنها...", "phone": "0533319433" },
+    { "id": 3, "date": "2026-09-25", "type": "خدمة رقمية", "details": "اشتراك شاهد VIP لمدة شهر", "image": "", "status": "تم التنفيذ بنجاح", "phone": "0533319433" },
+    { "id": 2, "date": "2026-09-25", "type": "منتج مادي", "details": "حقيبة يد ماركة", "image": "", "status": "تم توفير المنتج / بانتظار الدفع", "phone": "0533319433" },
+    { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "image": "", "status": "جاري البحث وتوفير السعر", "phone": "0500000000" }
 ]
 
 HTML_CONTENT = """<!DOCTYPE html>
@@ -149,7 +150,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
 
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
-        th, td { padding: 8px; border-bottom: 1px solid var(--border-color); text-align: center; }
+        th, td { padding: 8px; border-bottom: 1px solid var(--border-color); text-align: center; vertical-align: middle; }
         th { color: var(--accent-color); background: var(--input-bg); }
         .status-badge { 
             background: var(--input-bg); 
@@ -161,6 +162,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             display: inline-block;
             font-weight: bold;
         }
+        .order-img { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color); margin-top: 4px; }
         .tracking-result { margin-top: 15px; background: var(--input-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--accent-color); display: none; }
     </style>
 </head>
@@ -182,13 +184,13 @@ HTML_CONTENT = """<!DOCTYPE html>
         <button class="tab-btn" onclick="switchTab(event, 'tab-admin')">👁️ شاشة المراقبة</button>
     </div>
 
-    <!-- 1. طلب جديد -->
+    <!-- 1. طلب جديد الديناميكي -->
     <div id="tab-order" class="tab-content active">
         <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث وخدمات)</div>
         <div class="form-group">
             <label>نوع الطلب</label>
-            <select id="serviceType" onchange="updateLabel()">
-                <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر / توفير)</option>
+            <select id="serviceType" onchange="updateFormMode()">
+                <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر / دروبشيبينغ)</option>
                 <option value="خدمة رقمية">خدمة رقمية / اشتراكات وبرمجة</option>
                 <option value="استشارة تجارية">استشارة تجارية متخصصة</option>
             </select>
@@ -198,11 +200,18 @@ HTML_CONTENT = """<!DOCTYPE html>
             <input type="text" id="clientPhone" placeholder="مثال: 05xxxxxxxx">
         </div>
         <div class="form-group">
-            <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات بدقة)</label>
-            <textarea id="orderDetails" rows="3" placeholder="اكتب تفاصيل طلبك بدقة..."></textarea>
+            <label id="detailsLabel">تفاصيل طلبك (المواصفات، المقاس بدقة)</label>
+            <textarea id="orderDetails" rows="3" placeholder="مثال: فستان سهرة أسود طويل مقاس M..."></textarea>
         </div>
+        
+        <!-- خانة رفع الصورة تظهر فقط للمنتجات المادية -->
+        <div class="form-group" id="imageGroup">
+            <label>📷 رابط صورة المنتج أو مرجع الشكل (اختياري)</label>
+            <input type="text" id="orderImage" placeholder="ضع رابط صورة المنتج هنا ليقوم البوت بتحليله وبحثه">
+        </div>
+
         <div style="font-size: 11px; color: var(--muted-color); margin-bottom: 10px; background: var(--input-bg); padding: 8px; border-radius: 6px;">
-            🛡️ <b>نظام الاستلام الآمن (Escrow):</b> أموالك محفوظة لدينا ولا تُتحول للمزود إلا بعد استلام طلبك ومطابقته تماماً.
+            🛡️ <b>نظام الاستلام الآمن (Escrow):</b> أموالك محفوظة لدينا ولا تُتحول للمزود إلا بعد مطابقة الطلب واستلامه.
         </div>
         <button class="btn" type="button" onclick="submitOrder()">🚀 إرسال الطلب للرجل الآلي</button>
     </div>
@@ -211,7 +220,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     <div id="tab-ai" class="tab-content">
         <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">🤖 المساعد الذكي (خبير الوساطة والبحث)</div>
         <div class="chat-box" id="chatBox">
-            <div class="chat-msg bot">أهلاً بك! أنا مساعد FlowAura الذكي. هل تبحث عن منتج معين لأجد لك أرخص سعر، أو تحتاج خدمة رقمية أو استشارة؟ اسألني وسأساعدك فوراً!</div>
+            <div class="chat-msg bot">أهلاً بك! أنا مساعد FlowAura الذكي. اسألني عن أي منتج مادي أو رقمي وسأقوم بالبحث عنه وتوفيره لك فوراً!</div>
         </div>
         <div style="display: flex; gap: 5px;">
             <input type="text" id="chatInput" placeholder="اسألني عن أي منتج، سعر، أو خدمة..." onkeypress="if(event.key === 'Enter') sendAIChat()">
@@ -224,7 +233,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div style="color: #fde047; font-weight: bold; margin-bottom: 10px;">🔍 تتبع حالة طلبك برقم الطلب</div>
         <div class="form-group">
             <label>أدخل رقم الطلب الخاص بك</label>
-            <input type="number" id="trackId" placeholder="مثال: 1">
+            <input type="number" id="trackId" placeholder="مثال: 4">
         </div>
         <button class="btn btn-warning" type="button" onclick="searchOrder()">بحث عن الطلب</button>
         <div id="trackingResultBox" class="tracking-result"></div>
@@ -247,13 +256,13 @@ HTML_CONTENT = """<!DOCTYPE html>
     <!-- 5. شاشة المراقبة والإشراف -->
     <div id="tab-admin" class="tab-content">
         <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 5px;">👁️ شاشة مراقبة عمل "الرجل الآلي"</div>
-        <p style="font-size: 11px; color: var(--muted-color); margin-top: 0;">هنا تراقبين كيف يقوم البوت باستقبال الطلبات، وتحديث حالاتها، والبحث عنها آلياً دون تدخل منكِ.</p>
+        <p style="font-size: 11px; color: var(--muted-color); margin-top: 0;">متابعة تفصيلية لاستقبال الطلبات، تحليل الصور المرفوعة، والبحث الآلي.</p>
         <button class="btn btn-success" type="button" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث شاشة المراقبة</button>
         <table>
             <thead>
                 <tr>
-                    <th>الرقم والتاريخ</th>
-                    <th>النوع والتفاصيل</th>
+                    <th>الرقم</th>
+                    <th>النوع والتفاصيل والصورة</th>
                     <th>الجوال</th>
                     <th>حالة البوت الآلي</th>
                 </tr>
@@ -267,37 +276,36 @@ HTML_CONTENT = """<!DOCTYPE html>
 <script>
     function toggleTheme() {
         const body = document.body;
-        if (body.getAttribute('data-theme') === 'dark') {
-            body.setAttribute('data-theme', 'light');
-        } else {
-            body.setAttribute('data-theme', 'dark');
-        }
+        body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     }
 
     function switchTab(evt, tabId) {
-        const contents = document.querySelectorAll('.tab-content');
-        contents.forEach(c => c.classList.remove('active'));
-        const btns = document.querySelectorAll('.tab-btn');
-        btns.forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         evt.currentTarget.classList.add('active');
         if(tabId === 'tab-admin') { loadAdminOrders(); }
     }
 
-    function updateLabel() {
+    function updateFormMode() {
         const type = document.getElementById("serviceType").value;
+        const imageGroup = document.getElementById("imageGroup");
         const detailsInput = document.getElementById("orderDetails");
         const label = document.getElementById("detailsLabel");
 
-        if (type === "استشارة تجارية") {
-            label.innerText = "تفاصيل الاستشارة التجارية:";
-            detailsInput.placeholder = "مثال: أريد استشارة بخصوص فتح متجر إلكتروني...";
-        } else if (type === "خدمة رقمية") {
-            label.innerText = "تفاصيل الخدمة الرقمية:";
-            detailsInput.placeholder = "مثال: أريد اشتراك شاهد VIP، أو تصميم وبرمجة موقع...";
+        if (type === "منتج مادي") {
+            imageGroup.style.display = "block";
+            label.innerText = "تفاصيل المنتج المادي (المقاس، اللون، المواصفات):";
+            detailsInput.placeholder = "مثال: فستان سهرة أسود طويل مقاس M...";
         } else {
-            label.innerText = "تفاصيل طلبك (المواصفات، المقاس، الرابط بدقة):";
-            detailsInput.placeholder = "مثال: أريد فستان سهرة أو بحث عن أرخص سعر لمنتج معين...";
+            imageGroup.style.display = "none"; // الخدمات الرقمية والاستشارات لا تحتاج صوراً
+            if (type === "خدمة رقمية") {
+                label.innerText = "تفاصيل الخدمة الرقمية:";
+                detailsInput.placeholder = "مثال: اشتراك شاهد VIP لمدة شهر...";
+            } else {
+                label.innerText = "تفاصيل الاستشارة التجارية:";
+                detailsInput.placeholder = "مثال: أريد استشارة بخصوص خطوات فتح متجر...";
+            }
         }
     }
 
@@ -311,12 +319,12 @@ HTML_CONTENT = """<!DOCTYPE html>
         input.value = '';
 
         setTimeout(() => {
-            let reply = "أهلاً بك! لقد فهمت طلبك. يمكنك الانتقال مباشرة إلى تبويب (طلب جديد) لإدخال رقم جوالك وسيقوم الرجل الآلي بتنفيذ وبحث طلبك فوراً.";
+            let reply = "أهلاً بك! لقد فهمت طلبك، سيقوم الرجل الآلي بمراجعته وبحثه فوراً.";
             const lower = text.toLowerCase();
-            if(lower.includes("اشتراك") || lower.includes("شاهد") || lower.includes("netflix") || lower.includes("برمجة")) {
-                reply = "ممتاز! نحن نوفر الخدمات الرقمية بضمان كامل. انطلق لتبويب (طلب جديد) وسيتولى البوت الباقي.";
-            } else if(lower.includes("سعر") || lower.includes("بحث") || lower.includes("رخيص") || lower.includes("شنطة")) {
-                reply = "يسعدنا ذلك! نظام البحث الآلي لدينا متخصص بملاحقة أرخص الأسعار للمنتجات المادية.";
+            if(lower.includes("اشتراك") || lower.includes("شاهد")) {
+                reply = "ممتاز! الخدمات الرقمية متوفرة لدينا بضمان كامل ومتابعة فورية.";
+            } else if(lower.includes("سعر") || lower.includes("بحث") || lower.includes("فستان") || lower.includes("شنطة")) {
+                reply = "رائع! يمكنك رفع صورة المنتج أو وضعه في تبويب (طلب جديد) ليقوم النظام بملاحقة أرخص سعر له.";
             }
             chatBox.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -333,10 +341,11 @@ HTML_CONTENT = """<!DOCTYPE html>
         const type = document.getElementById("serviceType").value;
         const details = document.getElementById("orderDetails").value;
         const phone = document.getElementById("clientPhone").value;
+        const image = type === "منتج مادي" ? document.getElementById("orderImage").value : "";
         const today = new Date().toISOString().split('T')[0];
 
         if (!details.trim() || !phone.trim()) {
-            alert("الرجاء إدخال رقم الجوال وتفاصيل الطلب");
+            alert("الرجاء إدخال رقم الجوال وتفاصيل الطلب بدقة");
             return;
         }
 
@@ -344,13 +353,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             const res = await fetch('/?action=new_order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: type, details: details, phone: phone, date: today })
+                body: JSON.stringify({ type: type, details: details, phone: phone, image: image, date: today })
             });
             const data = await res.json();
             if (data.status === "success") {
                 alert("✅ تم إرسال طلبك للرجل الآلي بنجاح! رقم طلبك هو: " + data.new_id);
                 document.getElementById("orderDetails").value = "";
                 document.getElementById("clientPhone").value = "";
+                if(document.getElementById("orderImage")) document.getElementById("orderImage").value = "";
             } else {
                 alert("حدث خطأ أثناء الإرسال");
             }
@@ -371,10 +381,11 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             resultBox.style.display = "block";
             if (found) {
+                let imgHtml = found.image ? `<br><img src="${found.image}" class="order-img" alt="صورة المنتج">` : '';
                 resultBox.innerHTML = `
                     <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 5px;">📦 تفاصيل طلبك رقم (#${found.id})</div>
                     <div style="font-size: 13px; margin: 4px 0;"><b>النوع:</b> ${found.type}</div>
-                    <div style="font-size: 13px; margin: 4px 0;"><b>التفاصيل:</b> ${found.details}</div>
+                    <div style="font-size: 13px; margin: 4px 0;"><b>التفاصيل:</b> ${found.details} ${imgHtml}</div>
                     <div style="font-size: 13px; margin: 4px 0;"><b>حالة البوت الآلي:</b> <span style="color: #4ade80;">${found.status}</span></div>
                 `;
             } else {
@@ -395,9 +406,10 @@ HTML_CONTENT = """<!DOCTYPE html>
             tbody.innerHTML = "";
             orders.forEach(order => {
                 const row = document.createElement('tr');
+                let imgHtml = order.image ? `<br><img src="${order.image}" class="order-img">` : '';
                 row.innerHTML = `
-                    <td><b>#${order.id}</b><br>${order.date}</td>
-                    <td><b>${order.type}</b><br>${order.details}</td>
+                    <td><b>#${order.id}</b><br><span style="font-size:9px; color:var(--muted-color);">${order.date}</span></td>
+                    <td><b>${order.type}</b><br>${order.details} ${imgHtml}</td>
                     <td>${order.phone || 'غير متوفر'}</td>
                     <td><span class="status-badge">🤖 ${order.status}</span></td>
                 `;
@@ -447,17 +459,17 @@ class handler(BaseHTTPRequestHandler):
                 text = message.get("text", "").strip()
 
                 if text.startswith("/start"):
-                    reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والخدمات الرقمية!\n\n🤖 أنا مساعدك الذكي الخبير، استقبل طلباتك وأديرها آلياً على مدار الساعة."
+                    reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والخدمات الرقمية!\n\n🤖 أنا مساعدك الذكي الخبير، أستقبل الطلبات والمواصفات وأديرها آلياً."
                 else:
                     new_id = (max([o.get("id", 0) for o in SERVER_ORDERS]) + 1) if SERVER_ORDERS else 1
-                    # البوت الآلي يحدد الحالة الأولية ذابحاً نفسه بالعمل
                     SERVER_ORDERS.insert(0, {
                         "id": new_id,
-                        "date": "2026-09-25",
+                        "date": "2026-09-26",
                         "type": "طلب عبر تيليجرام (آلي)",
                         "details": text,
+                        "image": "",
                         "phone": f"Telegram ID: {chat_id}",
-                        "status": "🤖 البوت يقوم بالبحث وتوفير السعر..."
+                        "status": "🤖 الرجل الآلي يحلل الطلب ويبحث عنه..."
                     })
                     reply_text = f"🤖✅ تم استلام طلبك وبدأ الرجل الآلي في البحث ومعالجته!\n\n📌 رقم طلبك هو: #{new_id}"
 
@@ -469,22 +481,24 @@ class handler(BaseHTTPRequestHandler):
                 service_type = data.get('type')
                 details = data.get('details')
                 phone = data.get('phone', 'غير متوفر')
-                order_date = data.get('date', '2026-09-25')
+                image = data.get('image', '')
+                order_date = data.get('date', '2026-09-26')
 
                 new_id = (max([o.get("id", 0) for o in SERVER_ORDERS]) + 1) if SERVER_ORDERS else 1
 
-                # البوت الآلي يستلم الطلب ويعلن حالة البحث الذاتي
                 SERVER_ORDERS.insert(0, {
                     "id": new_id,
                     "date": order_date,
                     "type": service_type,
                     "details": details,
+                    "image": image,
                     "phone": phone,
                     "status": "🤖 الرجل الآلي يحلل الطلب ويبحث عنه..."
                 })
 
                 try:
-                    msg = f"🚨 طلب جديد استقبله الرجل الآلي!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
+                    img_note = f"\n🖼️ صورة المنتج: {image}" if image else ""
+                    msg = f"🚨 طلب جديد استقبله الرجل الآلي!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}{img_note}"
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
                     urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
@@ -504,6 +518,6 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             self.send_response(200)
-            self.send_header('Content-type', 'application/json; charset=str(e))')
+            self.send_header('Content-type', 'application/json; charset=utf-8')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "error", "error": str(e)}, ensure_ascii=False).encode('utf-8'))
