@@ -6,6 +6,12 @@ TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
 CHANNEL_USERNAME = "@A_ToolsX"
 
+# قائمة مركزية لحفظ الطلبات على السيرفر لضمان مزامنتها مع البوت
+SERVER_ORDERS = [
+    { "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة" },
+    { "date": "2026-09-25", "type": "طلب استرجاع 🔄", "details": "رقم الطلب: حقيبه - السبب: بسبب تأكل", "status": "قيد المراجعة" }
+]
+
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -137,8 +143,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <p>سجل الطلبات والعمليات الفورية</p>
     </div>
 
-    <!-- تم اصلاح زر التحديث هنا ليعمل مباشرة داخل تليجرام -->
-    <button class="btn" style="background: #10b981; margin-bottom: 10px;" onclick="loadOrders(); alert('تم تحديث القائمة بنجاح!');">🔄 تحديث القائمة</button>
+    <button class="btn" style="background: #10b981; margin-bottom: 10px;" onclick="loadOrders()">🔄 تحديث وجلب القائمة من السيرفر</button>
 
     <table>
         <thead>
@@ -156,18 +161,20 @@ HTML_CONTENT = """<!DOCTYPE html>
 </div>
 
 <script>
-    function loadOrders() {
-        const tbody = document.getElementById("ordersTableBody");
-        let savedOrders = JSON.parse(localStorage.getItem('flowAuraOrders')) || [
-            { date: "2026-09-24", type: "منتج مادي", details: "أيفون بسعر منافس", status: "قيد المعالجة" }
-        ];
-        
-        tbody.innerHTML = "";
-        savedOrders.forEach(order => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${order.date}</td><td>${order.type}</td><td>${order.details}</td><td><span style="color: #4ade80; font-weight: bold;">${order.status}</span></td>`;
-            tbody.appendChild(row);
-        });
+    async function loadOrders() {
+        try {
+            const response = await fetch('/?get_orders=true');
+            const orders = await response.json();
+            const tbody = document.getElementById("ordersTableBody");
+            tbody.innerHTML = "";
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${order.date}</td><td>${order.type}</td><td>${order.details}</td><td><span style="color: #4ade80; font-weight: bold;">${order.status}</span></td>`;
+                tbody.appendChild(row);
+            });
+        } catch (e) {
+            console.log("خطأ في جلب الطلبات", e);
+        }
     }
 
     function switchToDashboard() {
@@ -225,18 +232,15 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById("supportReason").value = "";
         }
 
-        let savedOrders = JSON.parse(localStorage.getItem('flowAuraOrders')) || [];
-        savedOrders.unshift({ date: today, type: type, details: details, status: "قيد المراجعة" });
-        localStorage.setItem('flowAuraOrders', JSON.stringify(savedOrders));
-
         showToast(toastId);
 
         try {
             await fetch('/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: type, details: details })
+                body: JSON.stringify({ type: type, details: details, date: today })
             });
+            loadOrders();
         } catch (e) {
             console.log(e);
         }
@@ -249,10 +253,17 @@ HTML_CONTENT = """<!DOCTYPE html>
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(HTML_CONTENT.encode('utf-8'))
+        # التحقق مما إذا كان الطلب يطلب جلب بيانات القائمة
+        if "get_orders=true" in self.path:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps(SERVER_ORDERS, ensure_ascii=False).encode('utf-8'))
+        else:
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(HTML_CONTENT.encode('utf-8'))
 
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
@@ -292,6 +303,15 @@ class handler(BaseHTTPRequestHandler):
             elif "type" in data and "details" in data:
                 service_type = data.get('type')
                 details = data.get('details')
+                order_date = data.get('date', '2026-09-25')
+
+                # إضافة الطلب الجديد إلى قائمة السيرفر المركزية مباشرة
+                SERVER_ORDERS.insert(0, {
+                    "date": order_date,
+                    "type": service_type,
+                    "details": details,
+                    "status": "قيد المراجعة"
+                })
 
                 if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
                     msg = f"🚨 تنبيه جديد عبر FlowAura!\n\n📌 النوع: {service_type}\n📝 التفاصيل: {details}"
