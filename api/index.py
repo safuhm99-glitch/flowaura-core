@@ -97,8 +97,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             <input type="text" id="clientPhone" placeholder="مثال: 05xxxxxxxx">
         </div>
         <div class="form-group">
-            <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة)</label>
-            <textarea id="orderDetails" rows="3" placeholder="مثال: أريد جهاز آيفون 15 برو ماكس..."></textarea>
+            <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات، المقاس، الماركة، أو الرابط بدقة)</label>
+            <textarea id="orderDetails" rows="3" placeholder="مثال للملابس: أريد فستان سهرة أسود مقاس M | مثال للمنتجات: أريد كفر آيباد برو موديل 2024"></textarea>
         </div>
         <button class="btn" type="button" onclick="submitOrder()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
     </div>
@@ -181,8 +181,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             label.innerText = "تفاصيل الاستشارة التجارية:";
             detailsInput.placeholder = "مثال: أريد استشارة بخصوص تسعير منتج...";
         } else {
-            label.innerText = "تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة):";
-            detailsInput.placeholder = "مثال: أريد جهاز آيفون...";
+            label.innerText = "تفاصيل طلبك (اكتب المواصفات، المقاس، الماركة، أو الرابط بدقة):";
+            detailsInput.placeholder = "مثال للملابس: أريد فستان سهرة أسود مقاس M | مثال للمنتجات: أريد كفر آيباد برو موديل 2024";
         }
     }
 
@@ -334,7 +334,6 @@ class handler(BaseHTTPRequestHandler):
             query_params = parse_qs(parsed_path.query)
             action = query_params.get("action", [None])[0]
 
-            # معالجة رسائل تيليجرام
             if "message" in data:
                 message = data["message"]
                 chat_id = message["chat"]["id"]
