@@ -1,4 +1,10 @@
 from http.server import BaseHTTPRequestHandler
+import json
+import urllib.request
+
+# يمكنك لاحقاً وضع توكن البوت وآيدي الشات الخاص بك هنا لتفعيل التيليجرام بشكل كامل
+TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN"
+TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -152,8 +158,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label>تفاصيل الطلب</label>
             <textarea id="orderDetails" rows="3" placeholder="اكتب تفاصيل طلبك هنا..."></textarea>
         </div>
-        <button class="btn" onclick="showToast('order-toast')">🚀 إرسال الطلب</button>
-        <div id="order-toast" class="toast-msg toast-success">تم إرسال طلبك بنجاح وستم معالجته فوراً!</div>
+        <button class="btn" onclick="submitOrder()">🚀 إرسال الطلب</button>
+        <div id="order-toast" class="toast-msg toast-success">تم إرسال طلبك بنجاح وتسجيله في لوحة التحكم!</div>
     </div>
 
     <!-- قسم الاسترجاع للمنتجات المادية -->
@@ -209,7 +215,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 <th>الحالة</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="ordersTableBody">
             <tr>
                 <td>2026-09-24</td>
                 <td>منتج مادي</td>
@@ -244,6 +250,42 @@ HTML_CONTENT = """<!DOCTYPE html>
             toast.style.display = "none";
         }, 4000);
     }
+
+    async function submitOrder() {
+        const serviceType = document.getElementById("serviceType").value;
+        const orderDetails = document.getElementById("orderDetails").value;
+
+        if (!orderDetails.trim()) {
+            alert("الرجاء كتابة تفاصيل الطلب أولاً");
+            return;
+        }
+
+        // إرسال البيانات للسيرفر لتسجيلها وإرسالها لتيليجرام
+        try {
+            const response = await fetch('/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: serviceType, details: orderDetails })
+            });
+
+            if (response.ok) {
+                // إضافة الطلب مباشرة إلى جدول لوحة التحكم
+                const tbody = document.getElementById("ordersTableBody");
+                const today = new Date().toISOString().split('T')[0];
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `<td>${today}</td><td>${serviceType}</td><td>${orderDetails}</td><td><span style="color: #4ade80;">جديد</span></td>`;
+                tbody.prepend(newRow);
+
+                // إظهار رسالة النجاح وتفريغ الحقل
+                showToast('order-toast');
+                document.getElementById("orderDetails").value = "";
+            } else {
+                alert("حدث خطأ أثناء إرسال الطلب، جرب مرة أخرى.");
+            }
+        } catch (error) {
+            alert("تعذر الاتصال بالخادم.");
+        }
+    }
 </script>
 
 </body>
@@ -256,3 +298,29 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html; charset=utf-8')
         self.end_headers()
         self.wfile.write(HTML_CONTENT.encode('utf-8'))
+
+    def do_POST(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        
+        try:
+            data = json.loads(post_data.decode('utf-8'))
+            service_type = data.get('type')
+            details = data.get('details')
+
+            # إرسال التنبيه إلى تيليجرام إذا تم ضبط التوكن والآيدي
+            if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
+                msg = f"🚨 طلب جديد عبر FlowAura!\n\n📦 النوع: {service_type}\n📝 التفاصيل: {details}"
+                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
+                req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+                urllib.request.urlopen(req)
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
