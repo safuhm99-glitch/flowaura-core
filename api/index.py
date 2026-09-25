@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import urllib.request
+from urllib.parse import urlparse, parse_qs
 
 TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
@@ -339,6 +340,12 @@ class handler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8')) if post_data else {}
 
+            parsed_path = urlparse(self.path)
+            query_params = parse_qs(parsed_path.query)
+            action = query_params.get("action", [None])[0]
+            if not action:
+                action = data.get("action")
+
             if "message" in data:
                 chat_id = data["message"]["chat"]["id"]
                 reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والبحث الذكي!\n\nاضغط على الزر بالأسفل لفتح المتجر وتقديم طلبك أو تتبعه:"
@@ -352,7 +359,7 @@ class handler(BaseHTTPRequestHandler):
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}).encode('utf-8')
                 urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
 
-            elif "action=update_status" in self.path or data.get("action") == "update_status":
+            elif action == "update_status":
                 order_id = data.get("id")
                 new_status = data.get("status")
                 for order in SERVER_ORDERS:
@@ -360,7 +367,7 @@ class handler(BaseHTTPRequestHandler):
                         order["status"] = new_status
                         break
 
-            elif "action=new_order" in self.path or data.get("action") == "new_order":
+            elif action == "new_order":
                 service_type = data.get('type')
                 details = data.get('details')
                 phone = data.get('phone', 'غير متوفر')
