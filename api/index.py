@@ -6,7 +6,6 @@ TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
 CHANNEL_USERNAME = "@A_ToolsX"
 
-# تخزين الطلبات بشكل مباشر وآمن في الذاكرة لتجنب أخطاء السيرفر 500
 SERVER_ORDERS = [
     { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة", "phone": "0500000000" },
     { "id": 2, "date": "2026-09-25", "type": "طلب استرجاع 🔄", "details": "رقم الطلب: حقيبه - السبب: بسبب تأكل", "status": "قيد المراجعة", "phone": "0511111111" }
@@ -58,7 +57,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             cursor: pointer; margin-top: 5px;
         }
         .btn-warning { background: #f59e0b; }
-        .btn-danger { background: #ef4444; }
         .btn-success { background: #10b981; }
         .btn-dashboard {
             background: #1e293b; color: #60a5fa; border: 2px solid #3b82f6;
@@ -66,8 +64,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             font-weight: bold; cursor: pointer; margin-top: 15px;
         }
         .section-box { margin-top: 20px; border-top: 1px solid #1e293b; padding-top: 15px; }
-        .toast-msg { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; display: none; }
-        .toast-success { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid #4ade80; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
         th, td { padding: 8px; border-bottom: 1px solid #1e293b; text-align: center; }
         th { color: #93c5fd; background: #0f172a; }
@@ -113,10 +109,28 @@ HTML_CONTENT = """<!DOCTYPE html>
         <button class="btn btn-warning" onclick="switchAria('tracking-view')">🔍 تتبع حالة طلبي برقم الطلب</button>
     </div>
 
-    <!-- زر خاص بالمشرفة للوصول لوحة التحكم -->
-    <div>
-        <button class="btn-dashboard" onclick="askAdminPassword()">🔒 دخول المشرفة (لوحة التحكم)</button>
+    <!-- زر فتح خانة تسجيل دخول المشرفة -->
+    <div class="section-box">
+        <button class="btn-dashboard" onclick="switchAria('admin-login-view')">🔒 دخول المشرفة (لوحة التحكم)</button>
     </div>
+</div>
+
+<!-- واجهة إدخال كلمة سر المشرفة (بديلة لـ prompt الممنوعة في الجوال) -->
+<div class="container" id="admin-login-view" style="display: none;">
+    <div class="header">
+        <div class="logo">🔒</div>
+        <h1>تسجيل دخول المشرفة</h1>
+        <p>الرجاء إدخال كلمة المرور الخاصة باللوحة</p>
+    </div>
+
+    <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="adminPassInput" placeholder="أدخل كلمة المرور">
+    </div>
+    <button class="btn btn-success" onclick="verifyAdminPassword()">دخول لوحة التحكم</button>
+    <div id="loginError" style="color: #fca5a5; font-size: 12px; text-align: center; margin-top: 10px; display: none;">كلمة المرور غير صحيحة!</div>
+
+    <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
 </div>
 
 <!-- واجهة تتبع الطلب للعميل -->
@@ -168,16 +182,19 @@ HTML_CONTENT = """<!DOCTYPE html>
         document.getElementById('store-view').style.display = 'none';
         document.getElementById('tracking-view').style.display = 'none';
         document.getElementById('dash-view').style.display = 'none';
+        document.getElementById('admin-login-view').style.display = 'none';
         document.getElementById(viewId).style.display = 'block';
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('adminPassInput').value = '';
     }
 
-    function askAdminPassword() {
-        let pass = prompt("الرجاء إدخال كلمة سر المشرفة:");
-        if (pass === "1234") {
+    function verifyAdminPassword() {
+        let pass = document.getElementById('adminPassInput').value;
+        if (pass === "1234") { // كلمة المرور الافتراضية
             switchAria('dash-view');
             loadAdminOrders();
-        } else if (pass !== null) {
-            alert("كلمة المرور غير صحيحة!");
+        } else {
+            document.getElementById('loginError').style.display = 'block';
         }
     }
 
@@ -204,7 +221,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 document.getElementById("orderDetails").value = "";
                 document.getElementById("clientPhone").value = "";
             } else {
-                alert("حدث خطأ أثناء الإرسال: " + (data.error || ''));
+                alert("حدث خطأ أثناء الإرسال");
             }
         } catch (e) {
             alert("حدث خطأ في الاتصال بالسيرفر");
@@ -309,7 +326,6 @@ class handler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
 
-            # التعامل مع رسائل تيليجرام (Webhook)
             if "message" in data:
                 chat_id = data["message"]["chat"]["id"]
                 user_id = data["message"]["from"]["id"]
@@ -338,7 +354,6 @@ class handler(BaseHTTPRequestHandler):
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}).encode('utf-8')
                 urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
 
-            # تحديث حالة الطلب من لوحة المشرفة
             elif data.get("action") == "update_status":
                 order_id = data.get("id")
                 new_status = data.get("status")
@@ -347,7 +362,6 @@ class handler(BaseHTTPRequestHandler):
                         order["status"] = new_status
                         break
 
-            # إضافة طلب جديد
             elif data.get("action") == "new_order":
                 service_type = data.get('type')
                 details = data.get('details')
@@ -365,7 +379,6 @@ class handler(BaseHTTPRequestHandler):
                     "status": "قيد المراجعة"
                 })
 
-                # إرسال إشعار تليجرام للمشرفة
                 if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
                     try:
                         msg = f"🚨 طلب وساطة جديد عبر FlowAura!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
