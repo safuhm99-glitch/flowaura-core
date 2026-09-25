@@ -86,10 +86,11 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div style="color: #93c5fd; font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث)</div>
         <div class="form-group">
             <label>نوع الطلب</label>
-            <select id="serviceType">
+            <select id="serviceType" onchange="updatePlaceholder()">
                 <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر / توفير)</option>
                 <option value="خدمة رقمية">خدمة رقمية / وساطة برمجية</option>
                 <option value="استشارة تجارية">استشارة تجارية متخصصة</option>
+                <option value="طلب استرجاع">طلب استرجاع 🔄</option>
             </select>
         </div>
         <div class="form-group">
@@ -97,7 +98,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             <input type="text" id="clientPhone" placeholder="مثال: 05xxxxxxxx">
         </div>
         <div class="form-group">
-            <label>تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة)</label>
+            <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة)</label>
             <textarea id="orderDetails" rows="3" placeholder="مثال: أريد جهاز آيفون 15 برو ماكس لون تيتانيوم بسعر مناسب..."></textarea>
         </div>
         <button class="btn" onclick="submitData()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
@@ -115,7 +116,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 </div>
 
-<!-- واجهة إدخال كلمة سر المشرفة (بديلة لـ prompt الممنوعة في الجوال) -->
+<!-- واجهة إدخال كلمة سر المشرفة -->
 <div class="container" id="admin-login-view" style="display: none;">
     <div class="header">
         <div class="logo">🔒</div>
@@ -157,7 +158,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     <div class="header">
         <div class="logo">📊</div>
         <h1>لوحة تحكم المشرفة</h1>
-        <p>إدارة الطلبات، تحديث الحالات، وتوفير الأسعار</p>
+        <p>إدارة الطلبات (بما فيها طلبات الاسترجاع والبحث)، وتحديث الحالات</p>
     </div>
 
     <button class="btn btn-success" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة</button>
@@ -178,6 +179,26 @@ HTML_CONTENT = """<!DOCTYPE html>
 </div>
 
 <script>
+    function updatePlaceholder() {
+        const type = document.getElementById("serviceType").value;
+        const detailsInput = document.getElementById("orderDetails");
+        const label = document.getElementById("detailsLabel");
+
+        if (type === "استشارة تجارية") {
+            label.innerText = "تفاصيل الاستشارة التجارية (اطرح سؤالك أو موضوع الاستشارة بدقة):";
+            detailsInput.placeholder = "مثال: أود استشارة بخصوص تسعير منتج رقمي وكيفية استخراج السجل التجاري...";
+        } else if (type === "خدمة رقمية") {
+            label.innerText = "تفاصيل الخدمة الرقمية أو الوساطة البرمجية:";
+            detailsInput.placeholder = "مثال: أريد ربط بوابة دفع أو تعديل سكربت برمجي...";
+        } else if (type === "طلب استرجاع") {
+            label.innerText = "تفاصيل طلب الاسترجاع (رقم الطلب وسبب الاسترجاع):";
+            detailsInput.placeholder = "مثال: رقم الطلب #5 - السبب: المنتج وصل متضرر...";
+        } else {
+            label.innerText = "تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة):";
+            detailsInput.placeholder = "مثال: أريد جهاز آيفون 15 برو ماكس لون تيتانيوم بسعر مناسب...";
+        }
+    }
+
     function switchAria(viewId) {
         document.getElementById('store-view').style.display = 'none';
         document.getElementById('tracking-view').style.display = 'none';
@@ -190,7 +211,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     function verifyAdminPassword() {
         let pass = document.getElementById('adminPassInput').value;
-        if (pass === "1234") { // كلمة المرور الافتراضية
+        if (pass === "1234") {
             switchAria('dash-view');
             loadAdminOrders();
         } else {
