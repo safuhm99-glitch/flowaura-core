@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import urllib.request
 
-# يمكنك لاحقاً وضع توكن البوت وآيدي الشات الخاص بك هنا لتفعيل التيليجرام بشكل كامل
+# ضعِ هنا توكن البوت وآيدي الشات الخاص بكِ عند التفعيل
 TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN"
 TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"
 
@@ -194,7 +194,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <!-- زر الانتقال للوحة التحكم -->
     <div>
-        <button class="btn-dashboard" onclick="document.getElementById('store-view').style.display='none'; document.getElementById('dash-view').style.display='block'; window.scrollTo(0,0);">📊 الانتقال إلى لوحة التحكم وسجل الطلبات</button>
+        <button class="btn-dashboard" onclick="switchToDashboard()">📊 الانتقال إلى لوحة التحكم وسجل الطلبات</button>
     </div>
 </div>
 
@@ -216,12 +216,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             </tr>
         </thead>
         <tbody id="ordersTableBody">
-            <tr>
-                <td>2026-09-24</td>
-                <td>منتج مادي</td>
-                <td>آيفون بسعر منافس</td>
-                <td><span style="color: #4ade80;">قيد المعالجة</span></td>
-            </tr>
+            <!-- سيتم تعبئة الجدول من الحفظ المحلي -->
         </tbody>
     </table>
 
@@ -229,6 +224,32 @@ HTML_CONTENT = """<!DOCTYPE html>
 </div>
 
 <script>
+    // تحميل وسحب جميع الطلبات من ذاكرة المتصفح عند تشغيل الصفحة
+    window.onload = function() {
+        loadOrders();
+    };
+
+    function loadOrders() {
+        const tbody = document.getElementById("ordersTableBody");
+        const savedOrders = JSON.parse(localStorage.getItem('flowAuraOrders')) || [
+            { date: "2026-09-24", type: "منتج مادي", details: "آيفون بسعر منافس", status: "قيد المعالجة" }
+        ];
+        
+        tbody.innerHTML = "";
+        savedOrders.forEach(order => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${order.date}</td><td>${order.type}</td><td>${order.details}</td><td><span style="color: #4ade80;">${order.status}</span></td>`;
+            tbody.appendChild(row);
+        });
+    }
+
+    function switchToDashboard() {
+        loadOrders();
+        document.getElementById('store-view').style.display = 'none';
+        document.getElementById('dash-view').style.display = 'block';
+        window.scrollTo(0,0);
+    }
+
     function toggleSections() {
         var serviceType = document.getElementById("serviceType").value;
         var returnSection = document.getElementById("return-section");
@@ -260,7 +281,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             return;
         }
 
-        // إرسال البيانات للسيرفر لتسجيلها وإرسالها لتيليجرام
         try {
             const response = await fetch('/', {
                 method: 'POST',
@@ -269,14 +289,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             });
 
             if (response.ok) {
-                // إضافة الطلب مباشرة إلى جدول لوحة التحكم
-                const tbody = document.getElementById("ordersTableBody");
                 const today = new Date().toISOString().split('T')[0];
-                const newRow = document.createElement('tr');
-                newRow.innerHTML = `<td>${today}</td><td>${serviceType}</td><td>${orderDetails}</td><td><span style="color: #4ade80;">جديد</span></td>`;
-                tbody.prepend(newRow);
+                const newOrder = { date: today, type: serviceType, details: orderDetails, status: "جديد" };
 
-                // إظهار رسالة النجاح وتفريغ الحقل
+                // حفظ الطلب دائمًا في المتصفح لكي لا يختفي بعد تحديث الصفحة
+                const savedOrders = JSON.parse(localStorage.getItem('flowAuraOrders')) || [];
+                savedOrders.unshift(newOrder);
+                localStorage.setItem('flowAuraOrders', JSON.stringify(savedOrders));
+
                 showToast('order-toast');
                 document.getElementById("orderDetails").value = "";
             } else {
@@ -305,16 +325,31 @@ class handler(BaseHTTPRequestHandler):
         
         try:
             data = json.loads(post_data.decode('utf-8'))
-            service_type = data.get('type')
-            details = data.get('details')
 
-            # إرسال التنبيه إلى تيليجرام إذا تم ضبط التوكن والآيدي
-            if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
-                msg = f"🚨 طلب جديد عبر FlowAura!\n\n📦 النوع: {service_type}\n📝 التفاصيل: {details}"
-                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-                payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
-                req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
-                urllib.request.urlopen(req)
+            # 1. إذا كان طلب آتي من رسالة عميل على تيليجرام مباشرة (رد آلي)
+            if "message" in data:
+                chat_id = data["message"]["chat"]["id"]
+                user_text = data["message"].get("text", "")
+                
+                reply_text = f"أهلاً بك في FlowAura! ⚡\nتم استلام رسالتك: ({user_text})\nسيقوم المساعد الآلي بمتابعة طلبك فوراً."
+                
+                if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
+                    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                    payload = json.dumps({"chat_id": chat_id, "text": reply_text}).encode('utf-8')
+                    req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+                    urllib.request.urlopen(req)
+
+            # 2. إذا كان طلب جديد مرسل من نموذج المتجر
+            elif "type" in data and "details" in data:
+                service_type = data.get('type')
+                details = data.get('details')
+
+                if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN" and TELEGRAM_CHAT_ID != "YOUR_CHAT_ID":
+                    msg = f"🚨 طلب جديد عبر FlowAura!\n\n📦 النوع: {service_type}\n📝 التفاصيل: {details}"
+                    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                    payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
+                    req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+                    urllib.request.urlopen(req)
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
