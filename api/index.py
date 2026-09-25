@@ -73,7 +73,6 @@ HTML_CONTENT = """<!DOCTYPE html>
 </head>
 <body>
 
-<!-- واجهة العميل الأساسية -->
 <div class="container" id="store-view">
     <div class="header">
         <div class="logo">⚡</div>
@@ -81,7 +80,6 @@ HTML_CONTENT = """<!DOCTYPE html>
         <p>متجر الوساطة والبحث الذكي للطلبات</p>
     </div>
 
-    <!-- قسم إرسال طلب جديد -->
     <div>
         <div style="color: #93c5fd; font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث)</div>
         <div class="form-group">
@@ -104,28 +102,25 @@ HTML_CONTENT = """<!DOCTYPE html>
         <button class="btn" onclick="submitData()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
     </div>
 
-    <!-- زر الانتقال لتتبع الطلب للعميل -->
     <div class="section-box">
         <div style="color: #fde047; font-weight: bold; margin-bottom: 10px;">🔍 هل لديك طلب سابق؟ تتبع حالته الآن</div>
         <button class="btn btn-warning" onclick="switchAria('tracking-view')">🔍 تتبع حالة طلبي برقم الطلب</button>
     </div>
 
-    <!-- زر فتح خانة تسجيل دخول المشرفة -->
     <div class="section-box">
         <button class="btn-dashboard" onclick="switchAria('admin-login-view')">🔒 دخول المشرفة (لوحة التحكم)</button>
     </div>
 </div>
 
-<!-- واجهة إدخال كلمة سر المشرفة -->
 <div class="container" id="admin-login-view" style="display: none;">
     <div class="header">
         <div class="logo">🔒</div>
         <h1>تسجيل دخول المشرفة</h1>
-        <p>الرجاء إدخال كلمة المرور الخاصة باللوحة</p>
+        <p>الرجاء إدخال كلمة المرور الخاصة للوحة</p>
     </div>
 
     <div class="form-group">
-        <label>كلمة المرور</label>
+        <label>كلمة المرور (الافتراضية: 1234)</label>
         <input type="password" id="adminPassInput" placeholder="أدخل كلمة المرور">
     </div>
     <button class="btn btn-success" onclick="verifyAdminPassword()">دخول لوحة التحكم</button>
@@ -134,7 +129,6 @@ HTML_CONTENT = """<!DOCTYPE html>
     <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
 </div>
 
-<!-- واجهة تتبع الطلب للعميل -->
 <div class="container" id="tracking-view" style="display: none;">
     <div class="header">
         <div class="logo">🔍</div>
@@ -153,12 +147,11 @@ HTML_CONTENT = """<!DOCTYPE html>
     <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
 </div>
 
-<!-- لوحة تحكم المشرفة -->
 <div class="container" id="dash-view" style="display: none;">
     <div class="header">
         <div class="logo">📊</div>
         <h1>لوحة تحكم المشرفة</h1>
-        <p>إدارة الطلبات (بما فيها طلبات الاسترجاع والبحث)، وتحديث الحالات</p>
+        <p>إدارة الطلبات وتحديث الحالات</p>
     </div>
 
     <button class="btn btn-success" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة</button>
@@ -231,7 +224,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
 
         try {
-            const res = await fetch('/', {
+            const res = await fetch(window.location.origin + '/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'new_order', type: type, details: details, phone: phone, date: today })
@@ -255,7 +248,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         if(!orderId) { alert("أدخل رقم الطلب أولاً"); return; }
 
         try {
-            const response = await fetch('/?get_orders=true');
+            const response = await fetch(window.location.origin + '/?get_orders=true');
             const orders = await response.json();
             const found = orders.find(o => o.id == orderId);
 
@@ -279,7 +272,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     async function loadAdminOrders() {
         try {
-            const response = await fetch('/?get_orders=true');
+            const response = await fetch(window.location.origin + '/?get_orders=true');
             const orders = await response.json();
             const tbody = document.getElementById("ordersTableBody");
             tbody.innerHTML = "";
@@ -308,7 +301,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     async function updateStatus(orderId, newStatus) {
         try {
-            await fetch('/', {
+            await fetch(window.location.origin + '/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'update_status', id: orderId, status: newStatus })
@@ -349,22 +342,8 @@ class handler(BaseHTTPRequestHandler):
 
             if "message" in data:
                 chat_id = data["message"]["chat"]["id"]
-                user_id = data["message"]["from"]["id"]
                 
-                check_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember?chat_id={CHANNEL_USERNAME}&user_id={user_id}"
-                is_member = True
-                try:
-                    with urllib.request.urlopen(urllib.request.Request(check_url)) as response:
-                        res_data = json.loads(response.read().decode('utf-8'))
-                        if res_data.get("result", {}).get("status") not in ["creator", "administrator", "member"]:
-                            is_member = False
-                except:
-                    pass
-
-                if not is_member:
-                    reply_text = f"🚨 للأسف لا يمكنك استخدام البوت، يجب عليك أولاً الاشتراك في قناتنا:\nhttps://t.me/A_ToolsX"
-                else:
-                    reply_text = f"✨ أهلاً بك في متجر FlowAura للوساطة والبحث الذكي!\n\nاضغط على الزر بالأسفل لطلب منتجك أو تتبع حالة طلبك:"
+                reply_text = f"✨ أهلاً بك في متجر FlowAura للوساطة والبحث الذكي!\n\nاضغط على الزر بالأسفل لفتح المتجر وتقديم طلبك أو تتبعه:"
                     
                 url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                 keyboard = {
