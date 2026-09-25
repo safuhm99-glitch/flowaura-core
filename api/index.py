@@ -6,10 +6,11 @@ from urllib.parse import urlparse, parse_qs
 TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
 
+# قائمة الطلبات التي سيقوم المساعد الذكي بإدارتها وتحديثها آلياً
 SERVER_ORDERS = [
-    { "id": 3, "date": "2026-09-25", "type": "خدمة رقمية", "details": "اشتراك شاهد VIP لمدة شهر", "status": "قيد المراجعة", "phone": "0533319433" },
-    { "id": 2, "date": "2026-09-25", "type": "منتج مادي", "details": "حقيبة يد ماركة", "status": "قيد المراجعة", "phone": "0533319433" },
-    { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة", "phone": "0500000000" }
+    { "id": 3, "date": "2026-09-25", "type": "خدمة رقمية", "details": "اشتراك شاهد VIP لمدة شهر", "status": "تم التنفيذ بنجاح", "phone": "0533319433" },
+    { "id": 2, "date": "2026-09-25", "type": "منتج مادي", "details": "حقيبة يد ماركة", "status": "تم توفير المنتج / بانتظار الدفع", "phone": "0533319433" },
+    { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "جاري البحث وتوفير السعر", "phone": "0500000000" }
 ]
 
 HTML_CONTENT = """<!DOCTYPE html>
@@ -150,7 +151,16 @@ HTML_CONTENT = """<!DOCTYPE html>
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
         th, td { padding: 8px; border-bottom: 1px solid var(--border-color); text-align: center; }
         th { color: var(--accent-color); background: var(--input-bg); }
-        .status-select { background: var(--input-bg); color: #4ade80; border: 1px solid var(--accent-color); padding: 5px; border-radius: 4px; font-size: 11px; }
+        .status-badge { 
+            background: var(--input-bg); 
+            color: #4ade80; 
+            border: 1px solid var(--accent-color); 
+            padding: 5px 8px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            display: inline-block;
+            font-weight: bold;
+        }
         .tracking-result { margin-top: 15px; background: var(--input-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--accent-color); display: none; }
     </style>
 </head>
@@ -169,7 +179,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <button class="tab-btn" onclick="switchTab(event, 'tab-ai')">🤖 المساعد الذكي</button>
         <button class="tab-btn" onclick="switchTab(event, 'tab-track')">🔍 تتبع طلب</button>
         <button class="tab-btn" onclick="switchTab(event, 'tab-calc')">💰 حاسبة التوفير</button>
-        <button class="tab-btn" onclick="switchTab(event, 'tab-admin')">🔒 الإدارة</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-admin')">👁️ شاشة المراقبة</button>
     </div>
 
     <!-- 1. طلب جديد -->
@@ -181,7 +191,6 @@ HTML_CONTENT = """<!DOCTYPE html>
                 <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر / توفير)</option>
                 <option value="خدمة رقمية">خدمة رقمية / اشتراكات وبرمجة</option>
                 <option value="استشارة تجارية">استشارة تجارية متخصصة</option>
-                <option value="طلب استرجاع">طلب استرجاع 🔄</option>
             </select>
         </div>
         <div class="form-group">
@@ -195,10 +204,10 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div style="font-size: 11px; color: var(--muted-color); margin-bottom: 10px; background: var(--input-bg); padding: 8px; border-radius: 6px;">
             🛡️ <b>نظام الاستلام الآمن (Escrow):</b> أموالك محفوظة لدينا ولا تُتحول للمزود إلا بعد استلام طلبك ومطابقته تماماً.
         </div>
-        <button class="btn" type="button" onclick="submitOrder()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
+        <button class="btn" type="button" onclick="submitOrder()">🚀 إرسال الطلب للرجل الآلي</button>
     </div>
 
-    <!-- 2. المساعد الذكي المتطور -->
+    <!-- 2. المساعد الذكي -->
     <div id="tab-ai" class="tab-content">
         <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">🤖 المساعد الذكي (خبير الوساطة والبحث)</div>
         <div class="chat-box" id="chatBox">
@@ -235,33 +244,22 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- 5. الإدارة -->
+    <!-- 5. شاشة المراقبة والإشراف -->
     <div id="tab-admin" class="tab-content">
-        <div id="admin-login-area">
-            <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">🔒 دخول المشرفة للوحة التحكم</div>
-            <div class="form-group">
-                <label>كلمة المرور (الافتراضية: 1234)</label>
-                <input type="password" id="adminPassInput" placeholder="أدخل كلمة المرور">
-            </div>
-            <button class="btn btn-success" type="button" onclick="verifyAdmin()">دخول</button>
-            <div id="loginError" style="color: #fca5a5; font-size: 12px; text-align: center; margin-top: 10px; display: none;">كلمة المرور غير صحيحة!</div>
-        </div>
-
-        <div id="admin-dash-area" style="display: none;">
-            <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">📊 إدارة الطلبات</div>
-            <button class="btn btn-success" type="button" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة</button>
-            <table>
-                <thead>
-                    <tr>
-                        <th>الرقم والتاريخ</th>
-                        <th>النوع والتفاصيل</th>
-                        <th>الجوال</th>
-                        <th>الحالة</th>
-                    </tr>
-                </thead>
-                <tbody id="ordersTableBody"></tbody>
-            </table>
-        </div>
+        <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 5px;">👁️ شاشة مراقبة عمل "الرجل الآلي"</div>
+        <p style="font-size: 11px; color: var(--muted-color); margin-top: 0;">هنا تراقبين كيف يقوم البوت باستقبال الطلبات، وتحديث حالاتها، والبحث عنها آلياً دون تدخل منكِ.</p>
+        <button class="btn btn-success" type="button" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث شاشة المراقبة</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>الرقم والتاريخ</th>
+                    <th>النوع والتفاصيل</th>
+                    <th>الجوال</th>
+                    <th>حالة البوت الآلي</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody"></tbody>
+        </table>
     </div>
 
 </div>
@@ -283,6 +281,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         btns.forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         evt.currentTarget.classList.add('active');
+        if(tabId === 'tab-admin') { loadAdminOrders(); }
     }
 
     function updateLabel() {
@@ -302,7 +301,6 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
     }
 
-    // محرك المساعد الذكي المطور لتحليل الطلبات
     function sendAIChat() {
         const input = document.getElementById('chatInput');
         const chatBox = document.getElementById('chatBox');
@@ -313,17 +311,13 @@ HTML_CONTENT = """<!DOCTYPE html>
         input.value = '';
 
         setTimeout(() => {
-            let reply = "أهلاً بك! لقد فهمت طلبك. يمكنك الانتقال مباشرة إلى تبويب (طلب جديد) لإدخال رقم جوالك وتأكيد الطلب وسنقوم بتنفيذه وبحثه فوراً.";
-            
+            let reply = "أهلاً بك! لقد فهمت طلبك. يمكنك الانتقال مباشرة إلى تبويب (طلب جديد) لإدخال رقم جوالك وسيقوم الرجل الآلي بتنفيذ وبحث طلبك فوراً.";
             const lower = text.toLowerCase();
             if(lower.includes("اشتراك") || lower.includes("شاهد") || lower.includes("netflix") || lower.includes("برمجة")) {
-                reply = "ممتاز! نحن نوفر الخدمات الرقمية والاشتراكات بضمان كامل ومتابعة فورية. أنصحك بتسجيل طلبك عبر تبويب (طلب جديد) اختيار (خدمة رقمية).";
-            } else if(lower.includes("سعر") || lower.includes("بحث") || lower.includes("رخيص") || lower.includes("شنطة") || lower.includes("فستان")) {
-                reply = "يسعدنا ذلك! فريق البحث لدينا متخصص في ملاحقة أرخص الأسعار للمنتجات المادية وخدمات الدروبشيبينغ. تفضل بوضع تفاصيل المنتج في تبويب (طلب جديد).";
-            } else if(lower.includes("استشارة") || lower.includes("تجارة") || lower.includes("متجر")) {
-                reply = "نحن نقدم استشارات تجارية متخصصة لمساعدتك في بناء وتطوير مشروعك الإلكتروني. انتقل لتبويب (طلب جديد) واختر (استشارة تجارية).";
+                reply = "ممتاز! نحن نوفر الخدمات الرقمية بضمان كامل. انطلق لتبويب (طلب جديد) وسيتولى البوت الباقي.";
+            } else if(lower.includes("سعر") || lower.includes("بحث") || lower.includes("رخيص") || lower.includes("شنطة")) {
+                reply = "يسعدنا ذلك! نظام البحث الآلي لدينا متخصص بملاحقة أرخص الأسعار للمنتجات المادية.";
             }
-
             chatBox.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         }, 600);
@@ -333,17 +327,6 @@ HTML_CONTENT = """<!DOCTYPE html>
         const spend = parseFloat(document.getElementById('monthlySpend').value) || 0;
         const annual = spend * 12 * 0.15;
         document.getElementById('savingsResult').innerText = annual.toLocaleString() + " ريال سنوياً";
-    }
-
-    function verifyAdmin() {
-        let pass = document.getElementById('adminPassInput').value;
-        if (pass === "1234") {
-            document.getElementById('admin-login-area').style.display = 'none';
-            document.getElementById('admin-dash-area').style.display = 'block';
-            loadAdminOrders();
-        } else {
-            document.getElementById('loginError').style.display = 'block';
-        }
     }
 
     async function submitOrder() {
@@ -365,7 +348,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             });
             const data = await res.json();
             if (data.status === "success") {
-                alert("✅ تم إرسال طلبك بنجاح! رقم طلبك هو: " + data.new_id);
+                alert("✅ تم إرسال طلبك للرجل الآلي بنجاح! رقم طلبك هو: " + data.new_id);
                 document.getElementById("orderDetails").value = "";
                 document.getElementById("clientPhone").value = "";
             } else {
@@ -392,7 +375,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 5px;">📦 تفاصيل طلبك رقم (#${found.id})</div>
                     <div style="font-size: 13px; margin: 4px 0;"><b>النوع:</b> ${found.type}</div>
                     <div style="font-size: 13px; margin: 4px 0;"><b>التفاصيل:</b> ${found.details}</div>
-                    <div style="font-size: 13px; margin: 4px 0;"><b>الحالة:</b> ${found.status}</div>
+                    <div style="font-size: 13px; margin: 4px 0;"><b>حالة البوت الآلي:</b> <span style="color: #4ade80;">${found.status}</span></div>
                 `;
             } else {
                 resultBox.innerHTML = `<span style="color: #fca5a5;">عذراً، لم يتم العثور على طلب بهذا الرقم.</span>`;
@@ -416,29 +399,13 @@ HTML_CONTENT = """<!DOCTYPE html>
                     <td><b>#${order.id}</b><br>${order.date}</td>
                     <td><b>${order.type}</b><br>${order.details}</td>
                     <td>${order.phone || 'غير متوفر'}</td>
-                    <td>
-                        <select class="status-select" onchange="updateOrderStatus(${order.id}, this.value)">
-                            <option value="قيد المراجعة" ${order.status === 'قيد المراجعة' ? 'selected' : ''}>قيد المراجعة</option>
-                            <option value="جاري البحث وتوفير السعر" ${order.status === 'جاري البحث وتوفير السعر' ? 'selected' : ''}>جاري البحث وتوفير السعر</option>
-                            <option value="تم توفير المنتج / بانتظار الدفع" ${order.status === 'تم توفير المنتج / بانتظار الدفع' ? 'selected' : ''}>تم توفير المنتج / بانتظار الدفع</option>
-                            <option value="تم التنفيذ بنجاح" ${order.status === 'تم التنفيذ بنجاح' ? 'selected' : ''}>تم التنفيذ بنجاح</option>
-                            <option value="ملغي" ${order.status === 'ملغي' ? 'selected' : ''}>ملغي</option>
-                        </select>
-                    </td>
+                    <td><span class="status-badge">🤖 ${order.status}</span></td>
                 `;
                 tbody.appendChild(row);
             });
         } catch (e) {
             console.log("خطأ في جلب الطلبات", e);
         }
-    }
-
-    async function updateOrderStatus(orderId, newStatus) {
-        await fetch('/?action=update_status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: parseInt(orderId), status: newStatus })
-        });
     }
 </script>
 
@@ -480,30 +447,23 @@ class handler(BaseHTTPRequestHandler):
                 text = message.get("text", "").strip()
 
                 if text.startswith("/start"):
-                    reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والخدمات الرقمية!\n\n🤖 أنا مساعدك الذكي الخبير، اسألني عن أي منتج لبحث سعره أو خدمتك الرقمية وسأرشدك فوراً."
+                    reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والخدمات الرقمية!\n\n🤖 أنا مساعدك الذكي الخبير، استقبل طلباتك وأديرها آلياً على مدار الساعة."
                 else:
                     new_id = (max([o.get("id", 0) for o in SERVER_ORDERS]) + 1) if SERVER_ORDERS else 1
+                    # البوت الآلي يحدد الحالة الأولية ذابحاً نفسه بالعمل
                     SERVER_ORDERS.insert(0, {
                         "id": new_id,
                         "date": "2026-09-25",
-                        "type": "طلب عبر تيليجرام (ذكاء اصطناعي)",
+                        "type": "طلب عبر تيليجرام (آلي)",
                         "details": text,
                         "phone": f"Telegram ID: {chat_id}",
-                        "status": "قيد المراجعة"
+                        "status": "🤖 البوت يقوم بالبحث وتوفير السعر..."
                     })
-                    reply_text = f"🤖✅ تم استلام طلبك وبدء عمليات البحث بنجاح!\n\n📌 رقم طلبك هو: #{new_id}"
+                    reply_text = f"🤖✅ تم استلام طلبك وبدأ الرجل الآلي في البحث ومعالجته!\n\n📌 رقم طلبك هو: #{new_id}"
 
                 url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text}).encode('utf-8')
                 urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
-
-            elif action == "update_status":
-                order_id = data.get("id")
-                new_status = data.get("status")
-                for order in SERVER_ORDERS:
-                    if order.get("id") == order_id:
-                        order["status"] = new_status
-                        break
 
             elif action == "new_order":
                 service_type = data.get('type')
@@ -513,17 +473,18 @@ class handler(BaseHTTPRequestHandler):
 
                 new_id = (max([o.get("id", 0) for o in SERVER_ORDERS]) + 1) if SERVER_ORDERS else 1
 
+                # البوت الآلي يستلم الطلب ويعلن حالة البحث الذاتي
                 SERVER_ORDERS.insert(0, {
                     "id": new_id,
                     "date": order_date,
                     "type": service_type,
                     "details": details,
                     "phone": phone,
-                    "status": "قيد المراجعة"
+                    "status": "🤖 الرجل الآلي يحلل الطلب ويبحث عنه..."
                 })
 
                 try:
-                    msg = f"🚨 طلب جديد عبر الموقع!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
+                    msg = f"🚨 طلب جديد استقبله الرجل الآلي!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                     payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
                     urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
@@ -543,6 +504,6 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             self.send_response(200)
-            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.send_header('Content-type', 'application/json; charset=str(e))')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "error", "error": str(e)}, ensure_ascii=False).encode('utf-8'))
