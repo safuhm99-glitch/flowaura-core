@@ -2,9 +2,9 @@ from http.server import BaseHTTPRequestHandler
 import json
 import urllib.request
 
-# بيانات بوت تيليجرام الخاص بكِ
 TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
+CHANNEL_USERNAME = "@A_ToolsX" # اسم قناتك للتحقق من اشتراك المستخدمين
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -158,8 +158,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label>تفاصيل الطلب</label>
             <textarea id="orderDetails" rows="3" placeholder="اكتب تفاصيل طلبك هنا (مثلاً: أريد ساعة رولكس)..."></textarea>
         </div>
-        <button class="btn" onclick="submitOrder()">🚀 إرسال الطلب</button>
-        <div id="order-toast" class="toast-msg toast-success">تم إرسال طلبك بنجاح وإشعاره عبر البوت!</div>
+        <button class="btn" onclick="submitOrder()">🚀 إرسال الطلب وإضافته للوحة التحكم</button>
+        <div id="order-toast" class="toast-msg toast-success">تم إرسال طلبك وتسجيله في لوحة التحكم وتنبيه البوت بنجاح!</div>
     </div>
 
     <!-- قسم الاسترجاع للمنتجات المادية -->
@@ -216,7 +216,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             </tr>
         </thead>
         <tbody id="ordersTableBody">
-            <!-- سيتم تحميل الطلبات هنا -->
+            <!-- سيتم تعبئة الطلبات تلقائياً هنا -->
         </tbody>
     </table>
 
@@ -231,7 +231,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     function loadOrders() {
         const tbody = document.getElementById("ordersTableBody");
         const savedOrders = JSON.parse(localStorage.getItem('flowAuraOrders')) || [
-            { date: "2026-09-24", type: "منتج مادي", details: "آيفون بسعر منافس", status: "قيد المعالجة" }
+            { date: "2026-09-24", type: "منتج مادي", details: "أيفون بسعر منافس", status: "قيد المعالجة" }
         ];
         
         tbody.innerHTML = "";
@@ -276,19 +276,19 @@ HTML_CONTENT = """<!DOCTYPE html>
         const orderDetails = document.getElementById("orderDetails").value;
 
         if (!orderDetails.trim()) {
-            alert("الرجاء كتابة تفاصيل الطلب أولاً (مثلاً: أريد ساعة رولكس)");
+            alert("الرجاء كتابة تفاصيل الطلب أولاً");
             return;
         }
 
         const today = new Date().toISOString().split('T')[0];
-        const newOrder = { date: today, type: serviceType, details: orderDetails, status: "جديد عبر البوت" };
+        const newOrder = { date: today, type: serviceType, details: orderDetails, status: "جديد عبر المتجر" };
 
-        // حفظ الطلب محلياً لكي يظهر في لوحة التحكم فوراً ولا يختفي أبداً
+        // حفظ الطلب محلياً ليظهر في لوحة التحكم فوراً وبشكل دائم
         const savedOrders = JSON.parse(localStorage.getItem('flowAuraOrders')) || [];
         savedOrders.unshift(newOrder);
         localStorage.setItem('flowAuraOrders', JSON.stringify(savedOrders));
 
-        // إرسال الطلب للخادم ليصلك التنبيه على تيليجرام
+        // إرسال الطلب للخادم لتنبيهك عبر تيليجرام
         try {
             await fetch('/', {
                 method: 'POST',
@@ -296,7 +296,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 body: JSON.stringify({ type: serviceType, details: orderDetails })
             });
         } catch (e) {
-            console.log("Network note:", e);
+            console.log(e);
         }
 
         showToast('order-toast');
@@ -321,22 +321,68 @@ class handler(BaseHTTPRequestHandler):
         
         try:
             data = json.loads(post_data.decode('utf-8'))
-            service_type = data.get('type')
-            details = data.get('details')
 
-            # إرسال التنبيه الفوري إلى بوت تيليجرام الخاص بكِ
-            if service_type and details:
-                msg = f"🚨 طلب جديد عبر FlowAura!\n\n📦 النوع: {service_type}\n📝 التفاصيل: {details}"
+            # 1. إذا راسل العميل البوت في تيليجرام (مثل /start)
+            if "message" in data:
+                chat_id = data["message"]["chat"]["id"]
+                user_id = data["message"]["from"]["id"]
+                
+                # التحقق من اشتراك المستخدم في القناة
+                check_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember?chat_id={CHANNEL_USERNAME}&user_id={user_id}"
+                req_check = urllib.request.Request(check_url)
+                
+                is_member = False
+                try:
+                    with urllib.request.urlopen(req_check) as response:
+                        res_data = json.loads(response.read().decode('utf-8'))
+                        status = res_data.get("result", {}).get("status")
+                        if status in ["creator", "administrator", "member"]:
+                            is_member = True
+                except:
+                    is_member = True # تجنب التعطيل في حال لم يكن البوت مشرفاً بالقناة
+
+                if not is_member:
+                    # رسالة طلب الاشتراك في القناة
+                    reply_text = f"🚨 للأسف لا يمكنك استخدام البوت، يجب عليك أولاً الاشتراك في قناتنا:\nhttps://t.me/A_ToolsX"
+                else:
+                    # رسالة الترحيب مع زر لوحة التحكم
+                    reply_text = f"✨ مرحباً بك يا صفية في بوت FlowAura Store\n\nأنا مساعدك الذكي لاستقبال الطلبات وإدارتها."
+                    
                 url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-                payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
+                
+                # إرفاق زر لوحة التحكم في تيليجرام
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "🌐 زيارة لوحة التحكم والطلب", "web_app": {"url": "https://smartpulseai.net"}}]
+                    ]
+                }
+                
+                payload = json.dumps({
+                    "chat_id": chat_id, 
+                    "text": reply_text,
+                    "reply_markup": keyboard
+                }).encode('utf-8')
+                
                 req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
                 urllib.request.urlopen(req)
+
+            # 2. إذا تم إرسال طلب جديد من واجهة الموقع
+            elif "type" in data and "details" in data:
+                service_type = data.get('type')
+                details = data.get('details')
+
+                if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
+                    msg = f"🚨 طلب جديد عبر FlowAura!\n\n📦 النوع: {service_type}\n📝 التفاصيل: {details}"
+                    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                    payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
+                    req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+                    urllib.request.urlopen(req)
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
         except Exception as e:
-            self.send_response(200) # منع حدوث أي خطأ ظاهري للعميل
+            self.send_response(200)
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "success", "note": str(e)}).encode('utf-8'))
+            self.wfile.write(json.dumps({"status": "success", "error": str(e)}).encode('utf-8'))
