@@ -1,34 +1,16 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import urllib.request
-import os
 
 TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
 CHANNEL_USERNAME = "@A_ToolsX"
 
-DB_FILE = "orders_database.json"
-
-def load_orders_from_db():
-    if os.path.exists(DB_FILE):
-        try:
-            with open(DB_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            pass
-    return [
-        { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة", "phone": "0500000000" },
-        { "id": 2, "date": "2026-09-25", "type": "طلب استرجاع 🔄", "details": "رقم الطلب: حقيبه - السبب: بسبب تأكل", "status": "قيد المراجعة", "phone": "0511111111" }
-    ]
-
-def save_orders_to_db(orders):
-    try:
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(orders, f, ensure_ascii=False, indent=4)
-    except:
-        pass
-
-SERVER_ORDERS = load_orders_from_db()
+# تخزين الطلبات بشكل مباشر وآمن في الذاكرة لتجنب أخطاء السيرفر 500
+SERVER_ORDERS = [
+    { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة", "phone": "0500000000" },
+    { "id": 2, "date": "2026-09-25", "type": "طلب استرجاع 🔄", "details": "رقم الطلب: حقيبه - السبب: بسبب تأكل", "status": "قيد المراجعة", "phone": "0511111111" }
+]
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -108,7 +90,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div style="color: #93c5fd; font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث)</div>
         <div class="form-group">
             <label>نوع الطلب</label>
-            <select id="serviceType" onchange="toggleSections()">
+            <select id="serviceType">
                 <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر / توفير)</option>
                 <option value="خدمة رقمية">خدمة رقمية / وساطة برمجية</option>
                 <option value="استشارة تجارية">استشارة تجارية متخصصة</option>
@@ -122,8 +104,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label>تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة)</label>
             <textarea id="orderDetails" rows="3" placeholder="مثال: أريد جهاز آيفون 15 برو ماكس لون تيتانيوم بسعر مناسب..."></textarea>
         </div>
-        <button class="btn" onclick="submitData('order')">🚀 إرسال الطلب وإصدار رقم التتبع</button>
-        <div id="order-toast" class="toast-msg toast-success">تم إرسال طلبك بنجاح! احتفظ برقم طلبك للمتابعة.</div>
+        <button class="btn" onclick="submitData()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
     </div>
 
     <!-- زر الانتقال لتتبع الطلب للعميل -->
@@ -152,9 +133,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <button class="btn btn-success" onclick="trackOrder()">بحث عن الطلب</button>
 
-    <div id="trackingResultBox" class="tracking-result">
-        <!-- تظهر النتيجة هنا -->
-    </div>
+    <div id="trackingResultBox" class="tracking-result"></div>
 
     <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
 </div>
@@ -167,7 +146,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <p>إدارة الطلبات، تحديث الحالات، وتوفير الأسعار</p>
     </div>
 
-    <button class="btn btn-success" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة من السيرفر</button>
+    <button class="btn btn-success" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة</button>
 
     <table>
         <thead>
@@ -194,7 +173,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     function askAdminPassword() {
         let pass = prompt("الرجاء إدخال كلمة سر المشرفة:");
-        if (pass === "1234") { // كلمة سر افتراضية للمشرفة، يمكنك تغييرها
+        if (pass === "1234") {
             switchAria('dash-view');
             loadAdminOrders();
         } else if (pass !== null) {
@@ -202,7 +181,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
     }
 
-    async function submitData(actionType) {
+    async function submitData() {
         const type = document.getElementById("serviceType").value;
         const details = document.getElementById("orderDetails").value;
         const phone = document.getElementById("clientPhone").value;
@@ -220,13 +199,15 @@ HTML_CONTENT = """<!DOCTYPE html>
                 body: JSON.stringify({ action: 'new_order', type: type, details: details, phone: phone, date: today })
             });
             const data = await res.json();
-            if(data.new_id) {
+            if(data.status === "success") {
                 alert("✅ تم إرسال طلبك بنجاح!\nرقم طلبك الخاص هو: " + data.new_id + "\nاحتفظ به لتتبع حالة طلبك.");
                 document.getElementById("orderDetails").value = "";
                 document.getElementById("clientPhone").value = "";
+            } else {
+                alert("حدث خطأ أثناء الإرسال: " + (data.error || ''));
             }
         } catch (e) {
-            alert("حدث خطأ أثناء إرسال الطلب");
+            alert("حدث خطأ في الاتصال بالسيرفر");
         }
     }
 
@@ -254,7 +235,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
         } catch(e) {
             resultBox.style.display = "block";
-            resultBox.innerHTML = "حدث خطأ في الاتصال بالسرفر.";
+            resultBox.innerHTML = "حدث خطأ في الاتصال بالسيرفر.";
         }
     }
 
@@ -283,7 +264,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 tbody.appendChild(row);
             });
         } catch (e) {
-            console.log("خطأ في جلب الطلبات للمشرفة", e);
+            console.log("خطأ في جلب الطلبات", e);
         }
     }
 
@@ -306,24 +287,29 @@ HTML_CONTENT = """<!DOCTYPE html>
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if "get_orders=true" in self.path:
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json; charset=utf-8')
+        try:
+            if "get_orders=true" in self.path:
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps(SERVER_ORDERS, ensure_ascii=False).encode('utf-8'))
+            else:
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(HTML_CONTENT.encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
             self.end_headers()
-            self.wfile.write(json.dumps(SERVER_ORDERS, ensure_ascii=False).encode('utf-8'))
-        else:
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(HTML_CONTENT.encode('utf-8'))
+            self.wfile.write(str(e).encode('utf-8'))
 
     def do_POST(self):
-        content_length = int(self.headers.get('Content-Length', 0))
-        post_data = self.rfile.read(content_length)
-        
         try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
 
+            # التعامل مع رسائل تيليجرام (Webhook)
             if "message" in data:
                 chat_id = data["message"]["chat"]["id"]
                 user_id = data["message"]["from"]["id"]
@@ -352,23 +338,22 @@ class handler(BaseHTTPRequestHandler):
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}).encode('utf-8')
                 urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
 
+            # تحديث حالة الطلب من لوحة المشرفة
             elif data.get("action") == "update_status":
                 order_id = data.get("id")
                 new_status = data.get("status")
-                global SERVER_ORDERS
                 for order in SERVER_ORDERS:
                     if order.get("id") == order_id:
                         order["status"] = new_status
                         break
-                save_orders_to_db(SERVER_ORDERS)
 
-            elif data.get("action") == "new_order" or "type" in data:
+            # إضافة طلب جديد
+            elif data.get("action") == "new_order":
                 service_type = data.get('type')
                 details = data.get('details')
                 phone = data.get('phone', 'غير متوفر')
                 order_date = data.get('date', '2026-09-25')
 
-                global SERVER_ORDERS
                 new_id = (max([o.get("id", 0) for o in SERVER_ORDERS]) + 1) if SERVER_ORDERS else 1
 
                 SERVER_ORDERS.insert(0, {
@@ -379,25 +364,30 @@ class handler(BaseHTTPRequestHandler):
                     "phone": phone,
                     "status": "قيد المراجعة"
                 })
-                save_orders_to_db(SERVER_ORDERS)
 
+                # إرسال إشعار تليجرام للمشرفة
                 if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
-                    msg = f"🚨 طلب وساطة جديد عبر FlowAura!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
-                    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-                    payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
-                    urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
+                    try:
+                        msg = f"🚨 طلب وساطة جديد عبر FlowAura!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
+                        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                        payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
+                        urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
+                    except:
+                        pass
 
                 self.send_response(200)
-                self.send_header('Content-type', 'application/json')
+                self.send_header('Content-type', 'application/json; charset=utf-8')
                 self.end_headers()
-                self.wfile.write(json.dumps({"status": "success", "new_id": new_id}).encode('utf-8'))
+                self.wfile.write(json.dumps({"status": "success", "new_id": new_id}, ensure_ascii=False).encode('utf-8'))
                 return
 
             self.send_response(200)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-type', 'application/json; charset=utf-8')
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
+            self.wfile.write(json.dumps({"status": "success"}, ensure_ascii=False).encode('utf-8'))
+
         except Exception as e:
             self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "success", "error": str(e)}).encode('utf-8'))
+            self.wfile.write(json.dumps({"status": "error", "error": str(e)}, ensure_ascii=False).encode('utf-8'))
