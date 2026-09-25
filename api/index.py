@@ -75,6 +75,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             cursor: pointer;
             margin-top: 5px;
         }
+        .btn-warning {
+            background: #f59e0b;
+        }
         .btn-danger {
             background: #ef4444;
         }
@@ -126,7 +129,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div style="color: #93c5fd; font-weight: bold; margin-bottom: 10px;">📦 أرسل طلبك الجديد</div>
         <div class="form-group">
             <label>نوع الخدمة / المنتج</label>
-            <select id="serviceType">
+            <select id="serviceType" onchange="toggleSections()">
                 <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر)</option>
                 <option value="خدمة رقمية">خدمة رقمية / وساطة برمجية</option>
                 <option value="استشارة تجارية">استشارة تجارية متخصصة</option>
@@ -139,8 +142,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         <button class="btn" onclick="alert('تم إرسال طلبك بنجاح!')">🚀 إرسال الطلب</button>
     </div>
 
-    <!-- قسم الاسترجاع -->
-    <div class="section-box">
+    <!-- قسم الاسترجاع للمنتجات المادية -->
+    <div class="section-box" id="return-section">
         <div style="color: #fca5a5; font-weight: bold; margin-bottom: 10px;">🔄 قسم طلبات الاسترجاع</div>
         <div class="form-group">
             <label>رقم الطلب المراد استرجاعه</label>
@@ -148,12 +151,26 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
         <div class="form-group">
             <label>سبب الاسترجاع</label>
-            <textarea id="returnReason" rows="2" placeholder="اكتب السبب..."></textarea>
+            <textarea id="returnReason" rows="2" placeholder="اكتب السبب بالتفصيل..."></textarea>
         </div>
         <button class="btn btn-danger" onclick="alert('تم إرسال طلب الاسترجاع بنجاح.')">⚠️ تقديم طلب الاسترجاع</button>
     </div>
 
-    <!-- زر الانتقال للوحة التحكم (مفعل ومباشر 100%) -->
+    <!-- قسم الدعم الفني والتعديلات للخدمات الرقمية والاستشارات -->
+    <div class="section-box" id="support-section" style="display: none;">
+        <div style="color: #fde047; font-weight: bold; margin-bottom: 10px;">🛠️ قسم الدعم الفني والتعديلات</div>
+        <div class="form-group">
+            <label>رقم الخدمة / المشروع</label>
+            <input type="text" id="supportId" placeholder="مثال: 102">
+        </div>
+        <div class="form-group">
+            <label>تفاصيل التعديل أو الدعم المطلوبة</label>
+            <textarea id="supportReason" rows="2" placeholder="اكتب التعديلات أو الدعم الفني المطلوب..."></textarea>
+        </div>
+        <button class="btn btn-warning" onclick="alert('تم إرسال طلب الدعم أو التعديل بنجاح وسيتم خدمتك قريباً.')">🔧 إرسال طلب الدعم والتعديل</button>
+    </div>
+
+    <!-- زر الانتقال للوحة التحكم -->
     <div>
         <button class="btn-dashboard" onclick="document.getElementById('store-view').style.display='none'; document.getElementById('dash-view').style.display='block'; window.scrollTo(0,0);">📊 الانتقال إلى لوحة التحكم وسجل الطلبات</button>
     </div>
@@ -188,6 +205,22 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="document.getElementById('dash-view').style.display='none'; document.getElementById('store-view').style.display='block'; window.scrollTo(0,0);">← العودة للمتجر</button>
 </div>
+
+<script>
+    function toggleSections() {
+        var serviceType = document.getElementById("serviceType").value;
+        var returnSection = document.getElementById("return-section");
+        var supportSection = document.getElementById("support-section");
+
+        if (serviceType === "منتج مادي") {
+            returnSection.style.display = "block";
+            supportSection.style.display = "none";
+        } else {
+            returnSection.style.display = "none";
+            supportSection.style.display = "block";
+        }
+    }
+</script>
 
 </body>
 </html>
