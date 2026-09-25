@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowAura Store - المتجر الذكي للخدمات الرقمية</title>
+    <!-- استيراد خط عربي عصرية وإطارات التصميم -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #161b26;
+            --text-color: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #10b981;
+            --border-color: #2d3748;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #059669;
+            --border-color: #e2e8f0;
+            --shadow: rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding-bottom: 50px;
+        }
+
+        /* الهيدر وشريط التنقل */
+        header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            list-style: none;
+        }
+
+        .nav-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .nav-tab-btn.active, .nav-tab-btn:hover {
+            background-color: var(--primary);
+            color: #fff;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* المحتوى والصفحات */
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2.section-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* شبكة الكروت والقوالب */
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* الميزات المبتكرة المخصصة */
+        .feature-box {
+            background-color: var(--card-bg);
+            border: 2px dashed var(--primary);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        /* المساعد الذكي */
+        .chat-container {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            height: 250px;
+            overflow-y: auto;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .chat-msg {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            font-size: 0.9rem;
+        }
+
+        .chat-msg.bot {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            align-self: flex-start;
+        }
+
+        .chat-msg.user {
+            background-color: var(--primary);
+            color: #fff;
+            margin-left: auto;
+        }
+
+        .chat-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-group input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        /* حاسبة التوفير */
+        .calculator-box input[type="range"] {
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .savings-result {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-top: 10px;
+        }
+
+        /* استجابة الشاشات الصغيرة */
+        @media(max-width: 768px) {
+            header { flex-direction: column; gap: 10px; text-align: center; }
+            .nav-tabs { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-bolt"></i> FlowAura Store
+        </div>
+        <ul class="nav-tabs">
+            <li><button class="nav-tab-btn active" onclick="switchTab('services', this)">الخدمات الرقمية</button></li>
+            <li><button class="nav-tab-btn onclick" onclick="switchTab('consultations', this)">الاستشارات</button></li>
+            <li><button class="nav-tab-btn" onclick="switchTab('tracking', this)">تتبع الطلبات</button></li>
+            <li><button class="nav-tab-btn" onclick="switchTab('ai-concierge', this)">المساعد الذكي</button></li>
+            <li><button class="nav-tab-btn" onclick="switchTab('impossible', this)">اطلب المستحيل</button></li>
+        </ul>
+        <div class="header-actions">
+            <button class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon" id="theme-icon"></i></button>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- 1. صفحة الخدمات الرقمية -->
+        <section id="services" class="page-section active">
+            <h2 class="section-title"><i class="fa-solid fa-cube"></i> الخدمات الرقمية والاشتراكات المتاحة</h2>
+            <div class="grid-cards">
+                <div class="card">
+                    <div>
+                        <h3>باقة البلس الاحترافية</h3>
+                        <p>اشتراك رقمي موثوق مع تحديثات مستمرة ودعم فني طوال فترة الاشتراك.</p>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold; margin-bottom: 10px; color: var(--accent);">99 ر.س</div>
+                        <button class="btn" onclick="alert('تمت الإضافة للسلة بنجاح!')">شراء آمن وفوترة فورية</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div>
+                        <h3>أداة الأتمتة البرمجية</h3>
+                        <p>تجهيز وربط سيرفرات وبوتات مخصصة لخدمة أعمالك التجارية على مدار الساعة.</p>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold; margin-bottom: 10px; color: var(--accent);">249 ر.س</div>
+                        <button class="btn" onclick="alert('تمت الإضافة للسلة بنجاح!')">طلب الخدمة</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- حاسبة التوفير الذكية (الميزة 4) -->
+            <div class="feature-box calculator-box">
+                <h3 style="color: var(--primary); margin-bottom: 10px;"><i class="fa-solid fa-calculator"></i> حاسبة التوفير الذكية للخدمات الرقمية</h3>
+                <p>كم اشتراكاً رقمياً تستهلك شهرياً في العادة؟ حرك المؤشر لتعرف حجم التوفير معنا:</p>
+                <input type="range" id="subsCount" min="1" max="10" value="3" oninput="calculateSavings()">
+                <p>الاشتراكات المحددة: <span id="subsVal" style="font-weight:bold; color:var(--primary);">3</span> اشتراكات</p>
+                <div class="savings-result">إجمالي ما توفره سنوياً مع FlowAura: <span id="totalSaved">1,440</span> ر.س!</div>
+            </div>
+        </section>
+
+        <!-- 2. صفحة الاستشارات التجارية -->
+        <section id="consultations" class="page-section">
+            <h2 class="section-title"><i class="fa-solid fa-comments"></i> احجز استشارتك التجارية الخاصة</h2>
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <p>املأ نموذج الاستشارة أدناه لنبدأ في دراسة مشروعك وخطوات فتح متجرك الإلكتروني:</p>
+                <form onsubmit="event.preventDefault(); alert('تم إرسال طلب الاستشارة بنجاح، سيتم التواصل معك قريباً!');">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom: 5px;">رقم الجوال أو وسائل التواصل</label>
+                        <input type="text" placeholder="05xxxxxxxx" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);" required>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom: 5px;">تفاصيل الاستشارة المطلوبة</label>
+                        <textarea rows="4" placeholder="اكتب نبذة عن مشروعك أو استفسارك..." style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);" required></textarea>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%;">إرسال الطلب وحجز الموعد</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 3. صفحة تتبع الطلبات المباشرة ونظام الضمان الآمن -->
+        <section id="tracking" class="page-section">
+            <h2 class="section-title"><i class="fa-solid fa-shield-halved"></i> تتبع الطلبات وصندوق الاستلام الآمن (Escrow)</h2>
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <p>أدخل رقم الطلب الخاص بك لمتابعة الحالة أو فتح صندوق الاستلام الآمن الخاص بك:</p>
+                <div style="display: flex; gap: 10px; margin: 15px 0;">
+                    <input type="text" id="orderIdInput" placeholder="مثال: #4" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);">
+                    <button class="btn" onclick="trackOrder()">استعلام</button>
+                </div>
+                <div id="orderResult" style="margin-top: 15px; padding: 15px; background: var(--bg-color); border-radius: 8px; display: none;">
+                    <strong>حالة الطلب:</strong> قيد التنفيذ والمراجعة التقنية الآمنة.<br>
+                    <span style="color: var(--accent); font-size: 0.9rem;"><i class="fa-solid fa-lock"></i> صندوق الاستلام الآمن مفعّل لحين تأكيدك التشغيل.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. المساعد الذكي التفاعلي داخل المتجر (الميزة 1) -->
+        <section id="ai-concierge" class="page-section">
+            <h2 class="section-title"><i class="fa-solid fa-robot"></i> المساعد الذكي التفاعلي (AI Concierge)</h2>
+            <div class="card" style="max-width: 700px; margin: 0 auto;">
+                <p>اسأل المساعد الذكي عن أي خدمة أو اشتراك، وسيقترح عليك الباقة الأنسب فوراً:</p>
+                <div class="chat-container" id="chatContainer">
+                    <div class="chat-msg bot">أهلاً بك في FlowAura! أنا مساعدك الذكي، كيف يمكنني مساعدتك في اختيار الخدمة الأنسب لك اليوم؟</div>
+                </div>
+                <div class="chat-input-group">
+                    <input type="text" id="chatInput" placeholder="اكتب سؤالك هنا (مثلاً: أبغا اشتراك مناسب لجهازي الآيفون)...">
+                    <button class="btn" onclick="sendChatMessage()">إرسال</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. خدمة هندسة الطلب العكسي - اطلب المستحيل (الميزة 3) -->
+        <section id="impossible" class="page-section">
+            <h2 class="section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> خدمة "اطلب المستحيل الرقمي"</h2>
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <p>تبحث عن خدمة أو أداة رقمية نادرة غير موجودة في المتاجر؟ اكتبها هنا وسيقوم نظامنا ببحث استخباري تجاري لتوفيرها لك حصرياً:</p>
+                <div style="margin-top: 15px;">
+                    <input type="text" id="rareService" placeholder="اكتب اسم الخدمة أو الأداة النادرة..." style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color); margin-bottom: 15px;">
+                    <button class="btn" style="width: 100%;" onclick="alert('تم تسجيل طلبك كبحث استخباري تجاري! سنقوم بتوفيرها وإرسال التنبيه لك.')">إرسال طلب البحث الخاص</button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // التبديل بين التبويبات والصفحات
+        function switchTab(sectionId, btnElement) {
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(sectionId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        // التبديل بين الثيم الداكن والفاتح
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.setAttribute('data-theme', 'light');
+                themeIcon.className = 'fa-solid fa-sun';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'fa-solid fa-moon';
+            }
+        }
+
+        // محاكي تتبع الطلبات
+        function trackOrder() {
+            const val = document.getElementById('orderIdInput').value;
+            const res = document.getElementById('orderResult');
+            if(val.trim() !== '') {
+                res.style.display = 'block';
+            } else {
+                alert('الرجاء إدخال رقم الطلب بشكل صحيح.');
+            }
+        }
+
+        // حاسبة التوفير التفاعلية
+        function calculateSavings() {
+            const count = document.getElementById('subsCount').value;
+            document.getElementById('subsVal').innerText = count;
+            const saved = count * 480; // افتراض توفير 480 ريال لكل اشتراك سنوياً
+            document.getElementById('totalSaved').innerText = saved.toLocaleString();
+        }
+
+        // محاكي المساعد الذكي التفاعلي
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const container = document.getElementById('chatContainer');
+            if(input.value.trim() === '') return;
+
+            // رسالة المستخدم
+            const userMsg = document.createElement('div');
+            userMsg.className = 'chat-msg user';
+            userMsg.innerText = input.value;
+            container.appendChild(userMsg);
+
+            const query = input.value;
+            input.value = '';
+
+            // رد الذكاء الاصطناعي التجريبي الفوري
+            setTimeout(() => {
+                const botMsg = document.createElement('div');
+                botMsg.className = 'chat-msg bot';
+                botMsg.innerText = "بناءً على طلبك (" + query + ")، أقترح عليك 'باقة البلس الاحترافية'؛ إنها متوافقة تماماً وتتضمن الدعم والضمان الآمن. يمكنك إتمام الطلب مباشرة من قسم الخدمات الرقمية!";
+                container.appendChild(botMsg);
+                container.scrollTop = container.scrollHeight;
+            }, 600);
+        }
+    </script>
+</body>
+</html>
