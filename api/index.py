@@ -67,7 +67,6 @@ HTML_CONTENT = """<!DOCTYPE html>
         h1 { color: var(--accent-color); font-size: 20px; margin: 0; }
         p { color: var(--muted-color); font-size: 12px; margin: 5px 0 0 0; }
         
-        /* Theme Toggle Button */
         .theme-btn {
             position: absolute;
             top: 0;
@@ -81,7 +80,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             font-size: 12px;
         }
 
-        /* Tabs Navigation */
         .tabs {
             display: flex;
             gap: 5px;
@@ -127,22 +125,20 @@ HTML_CONTENT = """<!DOCTYPE html>
         .btn-warning { background: #f59e0b; color: white; }
         .btn-success { background: #10b981; color: white; }
         
-        /* AI Concierge Chat Box */
         .chat-box {
             background: var(--input-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 10px;
-            height: 150px;
+            height: 180px;
             overflow-y: auto;
             margin-bottom: 10px;
             font-size: 13px;
         }
-        .chat-msg { margin-bottom: 8px; padding: 6px 10px; border-radius: 6px; width: fit-content; max-width: 85%; }
+        .chat-msg { margin-bottom: 8px; padding: 8px 12px; border-radius: 6px; width: fit-content; max-width: 85%; line-height: 1.4; }
         .chat-msg.bot { background: var(--border-color); color: var(--text-color); }
         .chat-msg.user { background: var(--accent-color); color: white; margin-left: auto; }
 
-        /* Calculator */
         .calc-box {
             background: var(--input-bg);
             padding: 12px;
@@ -168,7 +164,6 @@ HTML_CONTENT = """<!DOCTYPE html>
         <p>متجر الوساطة والخدمات الرقمية الذكي</p>
     </div>
 
-    <!-- تبيويبات التنقل (Tabs) -->
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab(event, 'tab-order')">📦 طلب جديد</button>
         <button class="tab-btn" onclick="switchTab(event, 'tab-ai')">🤖 المساعد الذكي</button>
@@ -177,7 +172,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <button class="tab-btn" onclick="switchTab(event, 'tab-admin')">🔒 الإدارة</button>
     </div>
 
-    <!-- 1. قسم طلب جديد و نظام الاستلام الآمن (Escrow) -->
+    <!-- 1. طلب جديد -->
     <div id="tab-order" class="tab-content active">
         <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث وخدمات)</div>
         <div class="form-group">
@@ -198,24 +193,24 @@ HTML_CONTENT = """<!DOCTYPE html>
             <textarea id="orderDetails" rows="3" placeholder="اكتب تفاصيل طلبك بدقة..."></textarea>
         </div>
         <div style="font-size: 11px; color: var(--muted-color); margin-bottom: 10px; background: var(--input-bg); padding: 8px; border-radius: 6px;">
-            🛡️ <b>نظام الاستلام الآمن (Escrow):</b> أموالك محفوظة لدينا ولا تُتحول للمزود إلا بعد استلام طلبك ومطابقته للمواصفات تماماً.
+            🛡️ <b>نظام الاستلام الآمن (Escrow):</b> أموالك محفوظة لدينا ولا تُتحول للمزود إلا بعد استلام طلبك ومطابقته تماماً.
         </div>
         <button class="btn" type="button" onclick="submitOrder()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
     </div>
 
-    <!-- 2. قسم المساعد الذكي (AI Concierge) -->
+    <!-- 2. المساعد الذكي المتطور -->
     <div id="tab-ai" class="tab-content">
-        <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">🤖 المساعد الذكي الفوري</div>
+        <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">🤖 المساعد الذكي (خبير الوساطة والبحث)</div>
         <div class="chat-box" id="chatBox">
-            <div class="chat-msg bot">مرحباً بك! أنا مساعد FlowAura الذكي. اسألني عن أي خدمة رقمية، منتج تبحث عن سعره، أو استشارة وسأرشدك فوراً.</div>
+            <div class="chat-msg bot">أهلاً بك! أنا مساعد FlowAura الذكي. هل تبحث عن منتج معين لأجد لك أرخص سعر، أو تحتاج خدمة رقمية أو استشارة؟ اسألني وسأساعدك فوراً!</div>
         </div>
         <div style="display: flex; gap: 5px;">
-            <input type="text" id="chatInput" placeholder="اكتب سؤالك هنا..." onkeypress="if(event.key === 'Enter') sendAIChat()">
+            <input type="text" id="chatInput" placeholder="اسألني عن أي منتج، سعر، أو خدمة..." onkeypress="if(event.key === 'Enter') sendAIChat()">
             <button class="btn" style="margin-top:0; width: 80px;" onclick="sendAIChat()">إرسال</button>
         </div>
     </div>
 
-    <!-- 3. قسم تتبع الطلبات -->
+    <!-- 3. تتبع طلب -->
     <div id="tab-track" class="tab-content">
         <div style="color: #fde047; font-weight: bold; margin-bottom: 10px;">🔍 تتبع حالة طلبك برقم الطلب</div>
         <div class="form-group">
@@ -226,10 +221,10 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div id="trackingResultBox" class="tracking-result"></div>
     </div>
 
-    <!-- 4. قسم حاسبة التوفير الذكية -->
+    <!-- 4. حاسبة التوفير -->
     <div id="tab-calc" class="tab-content">
         <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">📊 حاسبة التوفير الذكية</div>
-        <p>احسب كم يمكنك أن توفر سنوياً معنا في مشترياتك وخدماتك الرقمية والوساطة:</p>
+        <p>احسب كم يمكنك أن توفر سنوياً معنا في مشترياتك وخدماتك:</p>
         <div class="form-group">
             <label>متوسط مشترياتك الشهرية المتوقعة (بالريال)</label>
             <input type="number" id="monthlySpend" placeholder="مثال: 2000" oninput="calculateSavings()">
@@ -240,7 +235,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- 5. قسم لوحة تحكم المشرفة -->
+    <!-- 5. الإدارة -->
     <div id="tab-admin" class="tab-content">
         <div id="admin-login-area">
             <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 10px;">🔒 دخول المشرفة للوحة التحكم</div>
@@ -307,6 +302,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
     }
 
+    // محرك المساعد الذكي المطور لتحليل الطلبات
     function sendAIChat() {
         const input = document.getElementById('chatInput');
         const chatBox = document.getElementById('chatBox');
@@ -317,15 +313,20 @@ HTML_CONTENT = """<!DOCTYPE html>
         input.value = '';
 
         setTimeout(() => {
-            let reply = "أهلاً بك! بناءً على طلبك، أنصحك بتقديم طلب عبر تبويب (طلب جديد) وسنقوم بتوفير أرخص سعر أو الخدمة المطلوبة فوراً وبضمان الاستلام الآمن.";
-            if(text.includes("اشتراك") || text.includes("شاهد")) {
-                reply = "يتوفر لدينا توفير الاشتراكات الرقمية بضمان كامل ومراسلة عبر تليجرام، يمكنك طلبها مباشرة من تبويب 'طلب جديد'.";
-            } else if(text.includes("سعر") || text.includes("بحث")) {
-                reply = "نحن نمتلك فريق بحث احترافي لمقارنة الأسعار وإيجاد أرخص سعر لمشترياتك المادية بدقة!";
+            let reply = "أهلاً بك! لقد فهمت طلبك. يمكنك الانتقال مباشرة إلى تبويب (طلب جديد) لإدخال رقم جوالك وتأكيد الطلب وسنقوم بتنفيذه وبحثه فوراً.";
+            
+            const lower = text.toLowerCase();
+            if(lower.includes("اشتراك") || lower.includes("شاهد") || lower.includes("netflix") || lower.includes("برمجة")) {
+                reply = "ممتاز! نحن نوفر الخدمات الرقمية والاشتراكات بضمان كامل ومتابعة فورية. أنصحك بتسجيل طلبك عبر تبويب (طلب جديد) اختيار (خدمة رقمية).";
+            } else if(lower.includes("سعر") || lower.includes("بحث") || lower.includes("رخيص") || lower.includes("شنطة") || lower.includes("فستان")) {
+                reply = "يسعدنا ذلك! فريق البحث لدينا متخصص في ملاحقة أرخص الأسعار للمنتجات المادية وخدمات الدروبشيبينغ. تفضل بوضع تفاصيل المنتج في تبويب (طلب جديد).";
+            } else if(lower.includes("استشارة") || lower.includes("تجارة") || lower.includes("متجر")) {
+                reply = "نحن نقدم استشارات تجارية متخصصة لمساعدتك في بناء وتطوير مشروعك الإلكتروني. انتقل لتبويب (طلب جديد) واختر (استشارة تجارية).";
             }
+
             chatBox.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
-        }, 500);
+        }, 600);
     }
 
     function calculateSavings() {
@@ -479,18 +480,18 @@ class handler(BaseHTTPRequestHandler):
                 text = message.get("text", "").strip()
 
                 if text.startswith("/start"):
-                    reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والخدمات الرقمية!\n\n🤖 أنا مساعدك الذكي، يمكنني استقبال طلباتك، خدماتك الرقمية، استشاراتك، أو مساعدتك في تتبع طلباتك فوراً."
+                    reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والخدمات الرقمية!\n\n🤖 أنا مساعدك الذكي الخبير، اسألني عن أي منتج لبحث سعره أو خدمتك الرقمية وسأرشدك فوراً."
                 else:
                     new_id = (max([o.get("id", 0) for o in SERVER_ORDERS]) + 1) if SERVER_ORDERS else 1
                     SERVER_ORDERS.insert(0, {
                         "id": new_id,
                         "date": "2026-09-25",
-                        "type": "طلب عبر تيليجرام (تلقائي)",
+                        "type": "طلب عبر تيليجرام (ذكاء اصطناعي)",
                         "details": text,
                         "phone": f"Telegram ID: {chat_id}",
                         "status": "قيد المراجعة"
                     })
-                    reply_text = f"🤖✅ تم استلام طلبك وعمليات البحث الخاصة به بنجاح!\n\n📌 رقم طلبك: #{new_id}"
+                    reply_text = f"🤖✅ تم استلام طلبك وبدء عمليات البحث بنجاح!\n\n📌 رقم طلبك هو: #{new_id}"
 
                 url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text}).encode('utf-8')
