@@ -83,7 +83,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div style="color: #93c5fd; font-weight: bold; margin-bottom: 10px;">📦 أطلب ما تحتاجه (وساطة وبحث)</div>
         <div class="form-group">
             <label>نوع الطلب</label>
-            <select id="serviceType">
+            <select id="serviceType" onchange="updateLabel()">
                 <option value="منتج مادي">منتج مادي (بحث عن أرخص سعر / توفير)</option>
                 <option value="خدمة رقمية">خدمة رقمية / وساطة برمجية</option>
                 <option value="استشارة تجارية">استشارة تجارية متخصصة</option>
@@ -98,16 +98,16 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة)</label>
             <textarea id="orderDetails" rows="3" placeholder="مثال: أريد جهاز آيفون 15 برو ماكس لون تيتانيوم بسعر مناسب..."></textarea>
         </div>
-        <button class="btn" type="button" id="submitBtn">🚀 إرسال الطلب وإصدار رقم التتبع</button>
+        <button class="btn" type="button" onclick="submitOrder()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
     </div>
 
     <div class="section-box">
         <div style="color: #fde047; font-weight: bold; margin-bottom: 10px;">🔍 هل لديك طلب سابق؟ تتبع حالته الآن</div>
-        <button class="btn btn-warning" type="button" id="goToTracking">🔍 تتبع حالة طلبي برقم الطلب</button>
+        <button class="btn btn-warning" type="button" onclick="switchView('tracking-view')">🔍 تتبع حالة طلبي برقم الطلب</button>
     </div>
 
     <div class="section-box">
-        <button class="btn-dashboard" type="button" id="goToAdmin">🔒 دخول المشرفة (لوحة التحكم)</button>
+        <button class="btn-dashboard" type="button" onclick="switchView('admin-login-view')">🔒 دخول المشرفة (لوحة التحكم)</button>
     </div>
 </div>
 
@@ -122,10 +122,10 @@ HTML_CONTENT = """<!DOCTYPE html>
         <label>كلمة المرور (الافتراضية: 1234)</label>
         <input type="password" id="adminPassInput" placeholder="أدخل كلمة المرور">
     </div>
-    <button class="btn btn-success" type="button" id="verifyAdminBtn">دخول لوحة التحكم</button>
+    <button class="btn btn-success" type="button" onclick="verifyAdmin()">دخول لوحة التحكم</button>
     <div id="loginError" style="color: #fca5a5; font-size: 12px; text-align: center; margin-top: 10px; display: none;">كلمة المرور غير صحيحة!</div>
 
-    <button class="btn backHome" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;">← العودة للرئيسية</button>
+    <button class="btn" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchView('store-view')">← العودة للرئيسية</button>
 </div>
 
 <div class="container" id="tracking-view" style="display: none;">
@@ -139,11 +139,11 @@ HTML_CONTENT = """<!DOCTYPE html>
         <label>أدخل رقم الطلب الخاص بك</label>
         <input type="number" id="trackId" placeholder="مثال: 1">
     </div>
-    <button class="btn btn-success" type="button" id="searchOrderBtn">بحث عن الطلب</button>
+    <button class="btn btn-success" type="button" onclick="searchOrder()">بحث عن الطلب</button>
 
     <div id="trackingResultBox" class="tracking-result"></div>
 
-    <button class="btn backHome" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;">← العودة للرئيسية</button>
+    <button class="btn" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchView('store-view')">← العودة للرئيسية</button>
 </div>
 
 <div class="container" id="dash-view" style="display: none;">
@@ -153,7 +153,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <p>إدارة الطلبات وتحديث الحالات</p>
     </div>
 
-    <button class="btn btn-success" type="button" style="margin-bottom: 10px;" id="refreshOrdersBtn">🔄 تحديث القائمة</button>
+    <button class="btn btn-success" type="button" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة</button>
 
     <table>
         <thead>
@@ -167,141 +167,107 @@ HTML_CONTENT = """<!DOCTYPE html>
         <tbody id="ordersTableBody"></tbody>
     </table>
 
-    <button class="btn backHome" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;">← خروج والعودة للرئيسية</button>
+    <button class="btn" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchView('store-view')">← خروج والعودة للرئيسية</button>
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const serviceType = document.getElementById("serviceType");
-        if (serviceType) {
-            serviceType.addEventListener("change", function () {
-                const type = this.value;
-                const detailsInput = document.getElementById("orderDetails");
-                const label = document.getElementById("detailsLabel");
+    function updateLabel() {
+        const type = document.getElementById("serviceType").value;
+        const detailsInput = document.getElementById("orderDetails");
+        const label = document.getElementById("detailsLabel");
 
-                if (type === "استشارة تجارية") {
-                    label.innerText = "تفاصيل الاستشارة التجارية (اطرح سؤالك أو موضوع الاستشارة بدقة):";
-                    detailsInput.placeholder = "مثال: أود استشارة بخصوص تسعير منتج رقمي وكيفية استخراج السجل التجاري...";
-                } else if (type === "خدمة رقمية") {
-                    label.innerText = "تفاصيل الخدمة الرقمية أو الوساطة البرمجية:";
-                    detailsInput.placeholder = "مثال: أريد ربط بوابة دفع أو تعديل سكربت برمجي...";
-                } else if (type === "طلب استرجاع") {
-                    label.innerText = "تفاصيل طلب الاسترجاع (رقم الطلب وسبب الاسترجاع):";
-                    detailsInput.placeholder = "مثال: رقم الطلب #5 - السبب: المنتج وصل متضرر...";
-                } else {
-                    label.innerText = "تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة):";
-                    detailsInput.placeholder = "مثال: أريد جهاز آيفون 15 برو ماكس لون تيتانيوم بسعر مناسب...";
-                }
+        if (type === "استشارة تجارية") {
+            label.innerText = "تفاصيل الاستشارة التجارية (اطرح سؤالك أو موضوع الاستشارة بدقة):";
+            detailsInput.placeholder = "مثال: أود استشارة بخصوص تسعير منتج رقمي وكيفية استخراج السجل التجاري...";
+        } else if (type === "خدمة رقمية") {
+            label.innerText = "تفاصيل الخدمة الرقمية أو الوساطة البرمجية:";
+            detailsInput.placeholder = "مثال: أريد ربط بوابة دفع أو تعديل سكربت برمجي...";
+        } else if (type === "طلب استرجاع") {
+            label.innerText = "تفاصيل طلب الاسترجاع (رقم الطلب وسبب الاسترجاع):";
+            detailsInput.placeholder = "مثال: رقم الطلب #5 - السبب: المنتج وصل متضرر...";
+        } else {
+            label.innerText = "تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة):";
+            detailsInput.placeholder = "مثال: أريد جهاز آيفون 15 برو ماكس لون تيتانيوم بسعر مناسب...";
+        }
+    }
+
+    function switchView(viewId) {
+        document.getElementById('store-view').style.display = 'none';
+        document.getElementById('tracking-view').style.display = 'none';
+        document.getElementById('dash-view').style.display = 'none';
+        document.getElementById('admin-login-view').style.display = 'none';
+        document.getElementById(viewId).style.display = 'block';
+        document.getElementById('loginError').style.display = 'none';
+        if(document.getElementById('adminPassInput')) document.getElementById('adminPassInput').value = '';
+    }
+
+    function verifyAdmin() {
+        let pass = document.getElementById('adminPassInput').value;
+        if (pass === "1234") {
+            switchView('dash-view');
+            loadAdminOrders();
+        } else {
+            document.getElementById('loginError').style.display = 'block';
+        }
+    }
+
+    async function submitOrder() {
+        const type = document.getElementById("serviceType").value;
+        const details = document.getElementById("orderDetails").value;
+        const phone = document.getElementById("clientPhone").value;
+        const today = new Date().toISOString().split('T')[0];
+
+        if (!details.trim() || !phone.trim()) {
+            alert("الرجاء إدخال رقم الجوال وتفاصيل الطلب بدقة");
+            return;
+        }
+
+        try {
+            const res = await fetch('/?action=new_order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: type, details: details, phone: phone, date: today })
             });
+            const data = await res.json();
+            if (data.status === "success") {
+                alert("✅ تم إرسال طلبك بنجاح! رقم طلبك هو: " + data.new_id);
+                document.getElementById("orderDetails").value = "";
+                document.getElementById("clientPhone").value = "";
+            } else {
+                alert("حدث خطأ أثناء الإرسال");
+            }
+        } catch (e) {
+            alert("حدث خطأ في الاتصال بالسيرفر");
         }
+    }
 
-        function switchView(viewId) {
-            document.getElementById('store-view').style.display = 'none';
-            document.getElementById('tracking-view').style.display = 'none';
-            document.getElementById('dash-view').style.display = 'none';
-            document.getElementById('admin-login-view').style.display = 'none';
-            document.getElementById(viewId).style.display = 'block';
-            document.getElementById('loginError').style.display = 'none';
-            const passInput = document.getElementById('adminPassInput');
-            if (passInput) passInput.value = '';
+    async function searchOrder() {
+        const orderId = document.getElementById("trackId").value;
+        const resultBox = document.getElementById("trackingResultBox");
+        if (!orderId) { alert("أدخل رقم الطلب أولاً"); return; }
+
+        try {
+            const response = await fetch('/?get_orders=true');
+            const orders = await response.json();
+            const found = orders.find(o => o.id == orderId);
+
+            resultBox.style.display = "block";
+            if (found) {
+                resultBox.innerHTML = `
+                    <div style="color: #93c5fd; font-weight: bold; margin-bottom: 5px;">📦 تفاصيل طلبك رقم (#${found.id})</div>
+                    <div style="font-size: 13px; margin: 4px 0;"><b>النوع:</b> ${found.type}</div>
+                    <div style="font-size: 13px; margin: 4px 0;"><b>التفاصيل:</b> ${found.details}</div>
+                    <div style="font-size: 13px; margin: 4px 0;"><b>تاريخ الطلب:</b> ${found.date}</div>
+                    <div style="font-size: 14px; margin-top: 8px; color: #4ade80;"><b>الحالة الحالية:</b> ${found.status}</div>
+                `;
+            } else {
+                resultBox.innerHTML = `<span style="color: #fca5a5;">عذراً، لم يتم العثور على طلب بهذا الرقم.</span>`;
+            }
+        } catch (e) {
+            resultBox.style.display = "block";
+            resultBox.innerHTML = "حدث خطأ في الاتصال بالسيرفر.";
         }
-
-        document.querySelectorAll('.backHome').forEach(btn => {
-            btn.addEventListener('click', () => switchView('store-view'));
-        });
-
-        const goToTracking = document.getElementById('goToTracking');
-        if (goToTracking) {
-            goToTracking.addEventListener('click', () => switchView('tracking-view'));
-        }
-
-        const goToAdmin = document.getElementById('goToAdmin');
-        if (goToAdmin) {
-            goToAdmin.addEventListener('click', () => switchView('admin-login-view'));
-        }
-
-        const verifyAdminBtn = document.getElementById('verifyAdminBtn');
-        if (verifyAdminBtn) {
-            verifyAdminBtn.addEventListener('click', function () {
-                let pass = document.getElementById('adminPassInput').value;
-                if (pass === "1234") {
-                    switchView('dash-view');
-                    loadAdminOrders();
-                } else {
-                    document.getElementById('loginError').style.display = 'block';
-                }
-            });
-        }
-
-        const submitBtn = document.getElementById('submitBtn');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', async function () {
-                const type = document.getElementById("serviceType").value;
-                const details = document.getElementById("orderDetails").value;
-                const phone = document.getElementById("clientPhone").value;
-                const today = new Date().toISOString().split('T')[0];
-
-                if (!details.trim() || !phone.trim()) {
-                    alert("الرجاء إدخال رقم الجوال وتفاصيل الطلب بدقة");
-                    return;
-                }
-
-                try {
-                    const res = await fetch('/?action=new_order', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: type, details: details, phone: phone, date: today })
-                    });
-                    const data = await res.json();
-                    if (data.status === "success") {
-                        alert("✅ تم إرسال طلبك بنجاح!\nرقم طلبك الخاص هو: " + data.new_id + "\nاحتفظ به لتتبع حالة طلبك.");
-                        document.getElementById("orderDetails").value = "";
-                        document.getElementById("clientPhone").value = "";
-                    } else {
-                        alert("حدث خطأ أثناء الإرسال");
-                    }
-                } catch (e) {
-                    alert("حدث خطأ في الاتصال بالسيرفر");
-                }
-            });
-        }
-
-        const searchOrderBtn = document.getElementById('searchOrderBtn');
-        if (searchOrderBtn) {
-            searchOrderBtn.addEventListener('click', async function () {
-                const orderId = document.getElementById("trackId").value;
-                const resultBox = document.getElementById("trackingResultBox");
-                if (!orderId) { alert("أدخل رقم الطلب أولاً"); return; }
-
-                try {
-                    const response = await fetch('/?get_orders=true');
-                    const orders = await response.json();
-                    const found = orders.find(o => o.id == orderId);
-
-                    resultBox.style.display = "block";
-                    if (found) {
-                        resultBox.innerHTML = `
-                            <div style="color: #93c5fd; font-weight: bold; margin-bottom: 5px;">📦 تفاصيل طلبك رقم (#${found.id})</div>
-                            <div style="font-size: 13px; margin: 4px 0;"><b>النوع:</b> ${found.type}</div>
-                            <div style="font-size: 13px; margin: 4px 0;"><b>التفاصيل:</b> ${found.details}</div>
-                            <div style="font-size: 13px; margin: 4px 0;"><b>تاريخ الطلب:</b> ${found.date}</div>
-                            <div style="font-size: 14px; margin-top: 8px; color: #4ade80;"><b>الحالة الحالية:</b> ${found.status}</div>
-                        `;
-                    } else {
-                        resultBox.innerHTML = `<span style="color: #fca5a5;">عذراً، لم يتم العثور على طلب بهذا الرقم. تأكد من الرقم وصحته.</span>`;
-                    }
-                } catch (e) {
-                    resultBox.style.display = "block";
-                    resultBox.innerHTML = "حدث خطأ في الاتصال بالسيرفر.";
-                }
-            });
-        }
-
-        const refreshOrdersBtn = document.getElementById('refreshOrdersBtn');
-        if (refreshOrdersBtn) {
-            refreshOrdersBtn.addEventListener('click', loadAdminOrders);
-        }
-    });
+    }
 
     async function loadAdminOrders() {
         try {
@@ -317,7 +283,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                     <td><b>${order.type}</b><br>${order.details}</td>
                     <td>${order.phone || 'غير متوفر'}</td>
                     <td>
-                        <select class="status-select" data-id="${order.id}">
+                        <select class="status-select" onchange="updateOrderStatus(${order.id}, this.value)">
                             <option value="قيد المراجعة" ${order.status === 'قيد المراجعة' ? 'selected' : ''}>قيد المراجعة</option>
                             <option value="جاري البحث وتوفير السعر" ${order.status === 'جاري البحث وتوفير السعر' ? 'selected' : ''}>جاري البحث وتوفير السعر</option>
                             <option value="تم توفير المنتج / بانتظار الدفع" ${order.status === 'تم توفير المنتج / بانتظار الدفع' ? 'selected' : ''}>تم توفير المنتج / بانتظار الدفع</option>
@@ -328,24 +294,20 @@ HTML_CONTENT = """<!DOCTYPE html>
                 `;
                 tbody.appendChild(row);
             });
-
-            document.querySelectorAll('.status-select').forEach(sel => {
-                sel.addEventListener('change', async function () {
-                    const orderId = this.getAttribute('data-id');
-                    const newStatus = this.value;
-                    try {
-                        await fetch('/?action=update_status', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: parseInt(orderId), status: newStatus })
-                        });
-                    } catch (e) {
-                        console.log("خطأ في تحديث الحالة", e);
-                    }
-                });
-            });
         } catch (e) {
             console.log("خطأ في جلب الطلبات", e);
+        }
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+        try {
+            await fetch('/?action=update_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: parseInt(orderId), status: newStatus })
+            });
+        } catch (e) {
+            console.log("خطأ في تحديث الحالة", e);
         }
     }
 </script>
