@@ -4,11 +4,9 @@ import urllib.request
 
 TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
-CHANNEL_USERNAME = "@A_ToolsX"
 
 SERVER_ORDERS = [
-    { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة", "phone": "0500000000" },
-    { "id": 2, "date": "2026-09-25", "type": "طلب استرجاع 🔄", "details": "رقم الطلب: حقيبه - السبب: بسبب تأكل", "status": "قيد المراجعة", "phone": "0511111111" }
+    { "id": 1, "date": "2026-09-25", "type": "منتج مادي", "details": "كفر ايباد", "status": "قيد المراجعة", "phone": "0500000000" }
 ]
 
 HTML_CONTENT = """<!DOCTYPE html>
@@ -224,10 +222,10 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
 
         try {
-            const res = await fetch(window.location.origin + '/', {
+            const res = await fetch('/?action=new_order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'new_order', type: type, details: details, phone: phone, date: today })
+                body: JSON.stringify({ type: type, details: details, phone: phone, date: today })
             });
             const data = await res.json();
             if(data.status === "success") {
@@ -248,7 +246,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         if(!orderId) { alert("أدخل رقم الطلب أولاً"); return; }
 
         try {
-            const response = await fetch(window.location.origin + '/?get_orders=true');
+            const response = await fetch('/?get_orders=true');
             const orders = await response.json();
             const found = orders.find(o => o.id == orderId);
 
@@ -272,7 +270,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     async function loadAdminOrders() {
         try {
-            const response = await fetch(window.location.origin + '/?get_orders=true');
+            const response = await fetch('/?get_orders=true');
             const orders = await response.json();
             const tbody = document.getElementById("ordersTableBody");
             tbody.innerHTML = "";
@@ -301,10 +299,10 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     async function updateStatus(orderId, newStatus) {
         try {
-            await fetch(window.location.origin + '/', {
+            await fetch('/?action=update_status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'update_status', id: orderId, status: newStatus })
+                body: JSON.stringify({ id: orderId, status: newStatus })
             });
         } catch (e) {
             console.log("خطأ في تحديث الحالة", e);
@@ -338,13 +336,13 @@ class handler(BaseHTTPRequestHandler):
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
+            data = json.loads(post_data.decode('utf-8')) if post_data else {}
 
+            # معالجة رسائل وأوامر تيليجرام
             if "message" in data:
                 chat_id = data["message"]["chat"]["id"]
+                reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والبحث الذكي!\n\nاضغط على الزر بالأسفل لفتح المتجر وتقديم طلبك أو تتبعه:"
                 
-                reply_text = f"✨ أهلاً بك في متجر FlowAura للوساطة والبحث الذكي!\n\nاضغط على الزر بالأسفل لفتح المتجر وتقديم طلبك أو تتبعه:"
-                    
                 url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
                 keyboard = {
                     "inline_keyboard": [
@@ -354,7 +352,8 @@ class handler(BaseHTTPRequestHandler):
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}).encode('utf-8')
                 urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
 
-            elif data.get("action") == "update_status":
+            # تحديث حالة الطلب من لوحة التحكم
+            elif "action=update_status" in self.path or data.get("action") == "update_status":
                 order_id = data.get("id")
                 new_status = data.get("status")
                 for order in SERVER_ORDERS:
@@ -362,7 +361,8 @@ class handler(BaseHTTPRequestHandler):
                         order["status"] = new_status
                         break
 
-            elif data.get("action") == "new_order":
+            # إضافة طلب جديد من الموقع
+            elif "action=new_order" in self.path or data.get("action") == "new_order":
                 service_type = data.get('type')
                 details = data.get('details')
                 phone = data.get('phone', 'غير متوفر')
@@ -379,14 +379,14 @@ class handler(BaseHTTPRequestHandler):
                     "status": "قيد المراجعة"
                 })
 
-                if TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN":
-                    try:
-                        msg = f"🚨 طلب وساطة جديد عبر FlowAura!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
-                        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-                        payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
-                        urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
-                    except:
-                        pass
+                # إرسال إشعار فوري لتليجرام
+                try:
+                    msg = f"🚨 طلب وساطة جديد عبر FlowAura!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
+                    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                    payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode('utf-8')
+                    urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
+                except Exception as ex:
+                    print("Telegram Error:", ex)
 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json; charset=utf-8')
