@@ -98,6 +98,19 @@ HTML_CONTENT = """<!DOCTYPE html>
             border-top: 1px solid #1e293b;
             padding-top: 15px;
         }
+        .toast-msg {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+        .toast-success {
+            background: rgba(74, 222, 128, 0.15);
+            color: #4ade80;
+            border: 1px solid #4ade80;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -139,7 +152,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label>تفاصيل الطلب</label>
             <textarea id="orderDetails" rows="3" placeholder="اكتب تفاصيل طلبك هنا..."></textarea>
         </div>
-        <button class="btn" onclick="alert('تم إرسال طلبك بنجاح!')">🚀 إرسال الطلب</button>
+        <button class="btn" onclick="showToast('order-toast')">🚀 إرسال الطلب</button>
+        <div id="order-toast" class="toast-msg toast-success">تم إرسال طلبك بنجاح وستم معالجته فوراً!</div>
     </div>
 
     <!-- قسم الاسترجاع للمنتجات المادية -->
@@ -153,7 +167,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label>سبب الاسترجاع</label>
             <textarea id="returnReason" rows="2" placeholder="اكتب السبب بالتفصيل..."></textarea>
         </div>
-        <button class="btn btn-danger" onclick="alert('تم إرسال طلب الاسترجاع بنجاح.')">⚠️ تقديم طلب الاسترجاع</button>
+        <button class="btn btn-danger" onclick="showToast('return-toast')">⚠️ تقديم طلب الاسترجاع</button>
+        <div id="return-toast" class="toast-msg toast-success">تم تقديم طلب الاسترجاع بنجاح ومراجعته.</div>
     </div>
 
     <!-- قسم الدعم الفني والتعديلات للخدمات الرقمية والاستشارات -->
@@ -167,7 +182,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label>تفاصيل التعديل أو الدعم المطلوبة</label>
             <textarea id="supportReason" rows="2" placeholder="اكتب التعديلات أو الدعم الفني المطلوب..."></textarea>
         </div>
-        <button class="btn btn-warning" onclick="alert('تم إرسال طلب الدعم أو التعديل بنجاح وسيتم خدمتك قريباً.')">🔧 إرسال طلب الدعم والتعديل</button>
+        <button class="btn btn-warning" onclick="showToast('support-toast')">🔧 إرسال طلب الدعم والتعديل</button>
+        <div id="support-toast" class="toast-msg toast-success">تم إرسال طلب الدعم أو التعديل وسيتم خدمتك قريباً.</div>
     </div>
 
     <!-- زر الانتقال للوحة التحكم -->
@@ -219,6 +235,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             returnSection.style.display = "none";
             supportSection.style.display = "block";
         }
+    }
+
+    function showToast(toastId) {
+        var toast = document.getElementById(toastId);
+        toast.style.display = "block";
+        setTimeout(function() {
+            toast.style.display = "none";
+        }, 4000);
     }
 </script>
 
