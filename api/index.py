@@ -97,16 +97,16 @@ HTML_CONTENT = """<!DOCTYPE html>
             <label id="detailsLabel">تفاصيل طلبك (اكتب المواصفات، الماركة، أو الرابط بدقة)</label>
             <textarea id="orderDetails" rows="3" placeholder="مثال: أريد جهاز آيفون 15 برو ماكس لون تيتانيوم بسعر مناسب..."></textarea>
         </div>
-        <button class="btn" onclick="submitData()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
+        <button class="btn" type="button" onclick="submitData()">🚀 إرسال الطلب وإصدار رقم التتبع</button>
     </div>
 
     <div class="section-box">
         <div style="color: #fde047; font-weight: bold; margin-bottom: 10px;">🔍 هل لديك طلب سابق؟ تتبع حالته الآن</div>
-        <button class="btn btn-warning" onclick="switchAria('tracking-view')">🔍 تتبع حالة طلبي برقم الطلب</button>
+        <button class="btn btn-warning" type="button" onclick="switchAria('tracking-view')">🔍 تتبع حالة طلبي برقم الطلب</button>
     </div>
 
     <div class="section-box">
-        <button class="btn-dashboard" onclick="switchAria('admin-login-view')">🔒 دخول المشرفة (لوحة التحكم)</button>
+        <button class="btn-dashboard" type="button" onclick="switchAria('admin-login-view')">🔒 دخول المشرفة (لوحة التحكم)</button>
     </div>
 </div>
 
@@ -121,10 +121,10 @@ HTML_CONTENT = """<!DOCTYPE html>
         <label>كلمة المرور (الافتراضية: 1234)</label>
         <input type="password" id="adminPassInput" placeholder="أدخل كلمة المرور">
     </div>
-    <button class="btn btn-success" onclick="verifyAdminPassword()">دخول لوحة التحكم</button>
+    <button class="btn btn-success" type="button" onclick="verifyAdminPassword()">دخول لوحة التحكم</button>
     <div id="loginError" style="color: #fca5a5; font-size: 12px; text-align: center; margin-top: 10px; display: none;">كلمة المرور غير صحيحة!</div>
 
-    <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
+    <button class="btn" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
 </div>
 
 <div class="container" id="tracking-view" style="display: none;">
@@ -138,11 +138,11 @@ HTML_CONTENT = """<!DOCTYPE html>
         <label>أدخل رقم الطلب الخاص بك</label>
         <input type="number" id="trackId" placeholder="مثال: 1">
     </div>
-    <button class="btn btn-success" onclick="trackOrder()">بحث عن الطلب</button>
+    <button class="btn btn-success" type="button" onclick="trackOrder()">بحث عن الطلب</button>
 
     <div id="trackingResultBox" class="tracking-result"></div>
 
-    <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
+    <button class="btn" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← العودة للرئيسية</button>
 </div>
 
 <div class="container" id="dash-view" style="display: none;">
@@ -152,7 +152,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <p>إدارة الطلبات وتحديث الحالات</p>
     </div>
 
-    <button class="btn btn-success" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة</button>
+    <button class="btn btn-success" type="button" style="margin-bottom: 10px;" onclick="loadAdminOrders()">🔄 تحديث القائمة</button>
 
     <table>
         <thead>
@@ -166,7 +166,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <tbody id="ordersTableBody"></tbody>
     </table>
 
-    <button class="btn" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← خروج والعودة للرئيسية</button>
+    <button class="btn" type="button" style="margin-top: 20px; background: #1e293b; border: 1px solid #3b82f6;" onclick="switchAria('store-view')">← خروج والعودة للرئيسية</button>
 </div>
 
 <script>
@@ -197,7 +197,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         document.getElementById('admin-login-view').style.display = 'none';
         document.getElementById(viewId).style.display = 'block';
         document.getElementById('loginError').style.display = 'none';
-        document.getElementById('adminPassInput').value = '';
+        const passInput = document.getElementById('adminPassInput');
+        if(passInput) passInput.value = '';
     }
 
     function verifyAdminPassword() {
@@ -338,7 +339,6 @@ class handler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8')) if post_data else {}
 
-            # معالجة رسائل وأوامر تيليجرام
             if "message" in data:
                 chat_id = data["message"]["chat"]["id"]
                 reply_text = "✨ أهلاً بك في متجر FlowAura للوساطة والبحث الذكي!\n\nاضغط على الزر بالأسفل لفتح المتجر وتقديم طلبك أو تتبعه:"
@@ -352,7 +352,6 @@ class handler(BaseHTTPRequestHandler):
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}).encode('utf-8')
                 urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
 
-            # تحديث حالة الطلب من لوحة التحكم
             elif "action=update_status" in self.path or data.get("action") == "update_status":
                 order_id = data.get("id")
                 new_status = data.get("status")
@@ -361,7 +360,6 @@ class handler(BaseHTTPRequestHandler):
                         order["status"] = new_status
                         break
 
-            # إضافة طلب جديد من الموقع
             elif "action=new_order" in self.path or data.get("action") == "new_order":
                 service_type = data.get('type')
                 details = data.get('details')
@@ -379,7 +377,6 @@ class handler(BaseHTTPRequestHandler):
                     "status": "قيد المراجعة"
                 })
 
-                # إرسال إشعار فوري لتليجرام
                 try:
                     msg = f"🚨 طلب وساطة جديد عبر FlowAura!\n\n📌 رقم الطلب: #{new_id}\n📱 الجوال: {phone}\n🏷️ النوع: {service_type}\n📝 التفاصيل: {details}"
                     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
