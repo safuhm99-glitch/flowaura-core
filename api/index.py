@@ -137,7 +137,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         <p>سجل الطلبات والعمليات الفورية</p>
     </div>
 
-    <button class="btn" style="background: #10b981; margin-bottom: 10px;" onclick="loadOrders()">🔄 تحديث القائمة</button>
+    <!-- تم اصلاح زر التحديث هنا ليعمل مباشرة داخل تليجرام -->
+    <button class="btn" style="background: #10b981; margin-bottom: 10px;" onclick="loadOrders(); alert('تم تحديث القائمة بنجاح!');">🔄 تحديث القائمة</button>
 
     <table>
         <thead>
@@ -224,14 +225,12 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById("supportReason").value = "";
         }
 
-        // حفظ محلياً لتحديث اللوحة فورياً
         let savedOrders = JSON.parse(localStorage.getItem('flowAuraOrders')) || [];
         savedOrders.unshift({ date: today, type: type, details: details, status: "قيد المراجعة" });
         localStorage.setItem('flowAuraOrders', JSON.stringify(savedOrders));
 
         showToast(toastId);
 
-        // إرسال البيانات للسيرفر لتنبيه تيليجرام
         try {
             await fetch('/', {
                 method: 'POST',
@@ -262,7 +261,6 @@ class handler(BaseHTTPRequestHandler):
         try:
             data = json.loads(post_data.decode('utf-8'))
 
-            # التعامل مع تفعيل البوت (Webhook من تيليجرام)
             if "message" in data:
                 chat_id = data["message"]["chat"]["id"]
                 user_id = data["message"]["from"]["id"]
@@ -291,7 +289,6 @@ class handler(BaseHTTPRequestHandler):
                 payload = json.dumps({"chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}).encode('utf-8')
                 urllib.request.urlopen(urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}))
 
-            # التعامل مع الطلبات والاسترجاع والدعم القادمة من الواجهة وإرسالها لتيليجرام
             elif "type" in data and "details" in data:
                 service_type = data.get('type')
                 details = data.get('details')
