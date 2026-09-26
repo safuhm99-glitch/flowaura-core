@@ -6,7 +6,6 @@ from urllib.parse import urlparse, parse_qs
 TELEGRAM_BOT_TOKEN = "8900192914:AAGDSW3TEefl4xxPxhshaWjo4k4jbSKmkVU"
 TELEGRAM_CHAT_ID = "1998418269"
 
-# قائمة الطلبات المحدثة مع دعم الصور والروابط للمنتجات المادية
 SERVER_ORDERS = [
     { "id": 4, "date": "2026-09-26", "type": "منتج مادي", "details": "فستان سهرة أسود طويل مقاس M", "image": "https://images.unsplash.com/photo-1539109136881-3be0616acf4b", "status": "🤖 الرجل الآلي يحلل الصورة ويبحث عنها...", "phone": "0533319433" },
     { "id": 3, "date": "2026-09-25", "type": "خدمة رقمية", "details": "اشتراك شاهد VIP لمدة شهر", "image": "", "status": "تم التنفيذ بنجاح", "phone": "0533319433" },
@@ -19,7 +18,18 @@ HTML_CONTENT = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowAura - متجر الوساطة والخدمات الرقمية الذكي</title>
+    
+    <!-- تحسين محركات البحث (SEO Meta Tags) -->
+    <title>FlowAura - متجر الوساطة والخدمات الرقمية والذكية</title>
+    <meta name="description" content="منصة FlowAura الذكية للوساطة التجارية، توفير أرخص الأسعار للمنتجات المادية، الاشتراكات والخدمات الرقمية، والاستشارات المتخصصة آلياً.">
+    <meta name="keywords" content="وساطة تجارية, دروبشيبينغ, اشتراكات رقمية, أرخص الأسعار, توفير منتجات, استشارات تجارية, FlowAura">
+    <meta name="author" content="FlowAura Store">
+    
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="FlowAura - متجر الوساطة والخدمات الرقمية الذكي">
+    <meta property="og:description" content="منصة ذكية تدير طلباتك وبحثك عن المنتجات والخدمات آلياً على مدار الساعة.">
+    <meta property="og:type" content="website">
+
     <style>
         :root {
             --bg-color: #0b1329;
@@ -204,7 +214,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             <textarea id="orderDetails" rows="3" placeholder="مثال: فستان سهرة أسود طويل مقاس M..."></textarea>
         </div>
         
-        <!-- خانة رفع الصورة تظهر فقط للمنتجات المادية -->
         <div class="form-group" id="imageGroup">
             <label>📷 رابط صورة المنتج أو مرجع الشكل (اختياري)</label>
             <input type="text" id="orderImage" placeholder="ضع رابط صورة المنتج هنا ليقوم البوت بتحليله وبحثه">
@@ -298,7 +307,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             label.innerText = "تفاصيل المنتج المادي (المقاس، اللون، المواصفات):";
             detailsInput.placeholder = "مثال: فستان سهرة أسود طويل مقاس M...";
         } else {
-            imageGroup.style.display = "none"; // الخدمات الرقمية والاستشارات لا تحتاج صوراً
+            imageGroup.style.display = "none";
             if (type === "خدمة رقمية") {
                 label.innerText = "تفاصيل الخدمة الرقمية:";
                 detailsInput.placeholder = "مثال: اشتراك شاهد VIP لمدة شهر...";
