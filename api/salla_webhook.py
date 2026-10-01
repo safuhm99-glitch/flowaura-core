@@ -1,69 +1,59 @@
-from http.server import BaseHTTPRequestHandler
-import json
-import urllib.request
 import os
+import requests
+from flask import Flask, request, jsonify
 
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length)
-            event_data = json.loads(post_data.decode('utf-8'))
-            
-            # استخراج بيانات الطلب من سلة
-            event_type = event_data.get('event', 'unknown')
-            data = event_data.get('data', {})
-            customer = data.get('customer', {})
-            customer_name = customer.get('name', 'عميل جديد')
-            customer_mobile = customer.get('mobile', 'غير متوفر')
-            order_id = data.get('id', 'N/A')
-            total = data.get('total', {}).get('string', '0 SAR')
-            
-            # إرسال تنبيه آلي إلى تليجرام عند حدوث طلب جديد
-            telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-            chat_id = os.environ.get('TELEGRAM_CHAT_ID')
-            
-            if telegram_token and chat_id:
-                message = (
-                    f"🚨 طلب جديد عبر FlowAura!\n\n"
-                    f"📦 رقم الطلب: {order_id}\n"
-                    f"👤 العميل: {customer_name}\n"
-                    f"📱 الجوال: {customer_mobile}\n"
-                    f"💰 المتبقي/الإجمالي: {total}\n"
-                    f"⚙️ الحدث: {event_type}"
-                )
-                url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
-                payload = json.dumps({"chat_id": chat_id, "text": message}).encode('utf-8')
-                req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
-                try:
-                    urllib.request.urlopen(req)
-                except Exception as ex:
-                    print(f"Telegram Error: {ex}")
+app = Flask(__name__)
 
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            response_msg = {"status": "success", "message": "FlowAura webhook processed successfully"}
-            self.wfile.write(json.dumps(response_msg).encode('utf-8'))
-            
-        except Exception as e:
-            self.send_response(500)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            error_msg = {"status": "error", "message": str(e)}
-            self.wfile.write(json.dumps(error_msg).encode('utf-8'))
+# جلب الإعدادات من متغيرات البيئة في Vercel
+BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+CHAT_ID = os.environ.get('ADMIN_CHAT_ID')
 
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
-        html_content = """
-        <html>
-            <head><title>FlowAura Core System</title></head>
-            <body style="font-family: Arial, sans-serif; text-align: center; padding-top: 50px; background-color: #0f172a; color: #f8fafc;">
-                <h1>🚀 FlowAura Engine is Online!</h1>
-                <p>نظام الأتمتة لخدمات (Landing Pages, 3D, Branding) يعمل بكفاءة تامة ومتصل مع سلة وتليجرام.</p>
-            </body>
-        </html>
-        """
-        self.wfile.write(html_content.encode('utf-8'))
+@app.route('/webhook', methods=['POST'])
+def salla_webhook():
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"status": "error", "message": "No data received"}), 400
+
+        event = data.get('event', 'حدث جديد')
+        payload = data.get('data', {})
+        
+        # استخراج بعض التفاصيل الشائعة (حسب نوع الحدث في سلة)
+        order_id = payload.get('id', 'غير معروف')
+        total = payload.get('total', {}).get('text', 'غير متوفر')
+        customer_name = payload.get('customer', {}).get('name', 'عميل')
+
+        # صياغة رسالة التنبيه لتليجرام
+        message = (
+            f"🔔 **تنبيه جديد من متجر سلة**\n\n"
+            f"📌 **الحدث:** {event}\n"
+            f"🆔 **رقم الطلب:** {order_id}\n"
+            f"👤 **اسم العميل:** {customer_name}\n"
+            f"💰 **المبلغ الإجمالي:** {total}"
+        )
+
+        # إرسال الرسالة إلى تليجرام
+        if BOT_TOKEN and CHAT_ID:
+            telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+            payload_data = {
+                "chat_id": CHAT_ID,
+                "text": message,
+                "parse_mode": "Markdown"
+            }
+            response = requests.post(telegram_url, json=payload_data)
+            
+            if response.status_code != 200:
+                print(f"Telegram Error: {response.text}")
+
+        return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+        print(f"Error processing webhook: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/', methods=['GET'])
+def home():
+    return "Salla Webhook Server is Running Successfully!"
+
+if __name__ == '__main__':
+    app.run(debug=True)
