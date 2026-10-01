@@ -4,17 +4,18 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# إعدادات بوت تيليجرام (متوافقة مع متغيرات بيئة العمل في Vercel)
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "PUT_YOUR_BOT_TOKEN_HERE")
-TELEGRAM_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "PUT_YOUR_CHAT_ID_HERE")
+# إعدادات متغيرات البيئة من Vercel
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 
-def send_telegram_message(message):
-  """دالة مخصصة لإرسال الإشعارات إلى بوت تيليجرام الخاص بكِ"""
-  if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+def send_telegram_message(chat_id, message):
+  """دالة لإرسال الرسائل عبر تيليجرام (سواء للإدارة أو للعميل إذا توفر الشات)"""
+  if TELEGRAM_BOT_TOKEN and chat_id:
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": chat_id,
         "text": message,
         "parse_mode": "Markdown",
     }
@@ -24,12 +25,45 @@ def send_telegram_message(message):
       print(f"Error sending telegram message: {e}")
 
 
+def generate_ai_content(service_type, customer_notes):
+  """محرك الذكاء الاصطناعي لتوليد المحتوى أو تفاصيل الخدمة آلياً"""
+  if not OPENAI_API_KEY:
+    return "تم استلام الطلب بنجاح (مفتاح الذكاء الاصطناعي غير معرّف حالياً)."
+
+  prompt = (
+      f"قم بإنشاء محتوى أو خطبة تسويقية/هيكلية لخدمة: {service_type}. "
+      f"بناءً على طلب وملاحظات العميل التالية: {customer_notes}"
+  )
+
+  try:
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "model": "gpt-3.5-turbo",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 500,
+    }
+    response = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        json=data,
+        headers=headers,
+        timeout=15,
+    )
+    result = response.json()
+    return result["choices"][0]["message"]["content"]
+  except Exception as e:
+    print(f"AI Generation Error: {e}")
+    return "عذراً، حدث خطأ أثناء التوليد الآلي، سيتم مراجعة الطلب يدويياً."
+
+
 @app.route("/", methods=["GET"])
 def home():
   return jsonify({
       "status": "online",
-      "project": "FlowAura Agency Automation & AI Engine",
-      "version": "3.0",
+      "project": "FlowAura AI Automation Engine",
+      "version": "4.0",
   })
 
 
@@ -42,7 +76,6 @@ def salla_webhook():
     event = data.get("event")
     order = data.get("data", {})
 
-    # مراقبة الأحداث الخاصة بإنشاء أو تحديث الطلبات وعمليات الدفع
     if event in [
         "order.created",
         "order.updated",
@@ -54,49 +87,38 @@ def salla_webhook():
       customer_phone = order.get("customer", {}).get("mobile", "غير متوفر")
       total_amount = order.get("amounts", {}).get("total", {}).get("text", "")
 
-      # استخراج المنتجات والخدمات المطلوبة بدقة
+      # استخراج تفاصيل المنتجات وملاحظات العميل
       items = order.get("items", [])
-      services_list = []
-      service_type = "خدمة رقمية عامة"
-      
+      service_type = "خدمة رقمية"
+      customer_notes = "لا توجد ملاحظات إضافية"
+
       for item in items:
-        name = item.get("name", "تصميم رقمي")
-        qty = item.get("quantity", 1)
-        services_list.append(f"- {name} (الكمية: {qty})")
-        
-        # تصنيف نوع الخدمة ذكياً بناءً على اسم المنتج
-        if "3d" in name.lower() or "ثلاثي" in name.lower():
+        name = item.get("name", "")
+        if "هبوط" in name.lower() or "landing" in name.lower():
+          service_type = "تصميم صفحة هبوط"
+        elif "3d" in name.lower() or "ثلاثي" in name.lower():
           service_type = "تصميم ثلاثي الأبعاد (3D)"
         elif "هوية" in name.lower() or "branding" in name.lower():
-          service_type = "هوية بصرية متكاملة"
+          service_type = "هوية بصرية"
 
-      services_text = "\n".join(services_list) if services_list else "طلب خاص"
+      # استدعاء الذكاء الاصطناعي لتوليد المحتوى أو الأصول الآلية للخدمة
+      ai_output = generate_ai_content(service_type, customer_notes)
 
-      # --- محرك التسليم الآلي (الرد التلقائي للعميل أو توجيه مسار العمل) ---
-      # هنا يمكنكِ تخصيص الروابط أو الملفات التي تُسلّم آلياً حسب نوع الخدمة
-      delivery_instruction = "جاري مراجعة متطلباتك وبدء العمل الإبداعي."
-      if "ثلاثي" in service_type:
-        delivery_instruction = "سيتم إرسال نموذج المعاينة الأولية خلال 24 ساعة."
-      elif "هوية" in service_type:
-        delivery_instruction = "تم استلام استبيان الهوية وبدء مرحلة الأفكار."
-
-      # رسالة التنبيه الإدارية الشاملة التي ستصلكِ على تيليجرام
-      notification_text = (
-          f"🚀 *طلب مشروع جديد قيد التنفيذ!*\n\n"
+      # تنبيه الإدارة (لكِ) بالتفاصيل وما تم توليده
+      admin_message = (
+          f"🤖 *تم تنفيذ طلب آلياً عبر الذكاء الاصطناعي!*\n\n"
           f"📦 *رقم الطلب:* #{order_id}\n"
-          f"🎨 *تصنيف الخدمة:* {service_type}\n"
-          f"👤 *اسم العميل:* {customer_name}\n"
-          f"📱 *الجوال:* {customer_phone}\n"
-          f"💰 *المبلغ الإجمالي:* {total_amount}\n\n"
-          f"🛠 *تفاصيل المنتجات:*\n{services_text}\n\n"
-          f"⚙️ *حالة التسليم الآلي:* {delivery_instruction}\n"
-          f"✨ *الإجراء:* بانتظار لمستك الإبداعية للبدء فوراً!"
+          f"🛠 *الخدمة:* {service_type}\n"
+          f"👤 *العميل:* {customer_name} ({customer_phone})\n"
+          f"💰 *المبلغ:* {total_amount}\n\n"
+          f"📝 *مخرجات الذكاء الاصطناعي:*\n{ai_output}"
       )
 
-      # إرسال التنبيه إلى جهازكِ عبر البوت
-      send_telegram_message(notification_text)
+      # إرسال التنبيه إلى شات الإدارة الخاص بكِ
+      if TELEGRAM_CHAT_ID:
+        send_telegram_message(TELEGRAM_CHAT_ID, admin_message)
 
-    return jsonify({"status": "success", "message": "Automation engine processed successfully"}), 200
+    return jsonify({"status": "success", "ai_engine": "active"}), 200
 
   except Exception as e:
     print(f"Webhook Error: {e}")
