@@ -4,7 +4,14 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
+# تهيئة عميل OpenAI باستخدام متغير البيئة في Vercel
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# جدول الروابط المباشرة للمنتجات الجاهزة (مثل مجسمات 3D أو المخططات الرقمية)
+READY_PRODUCTS_LINKS = {
+    "مكتبة مجسمات 3D": "https://drive.google.com/drive/folders/your-3d-files-link",
+    "المخطط الرقمي الشامل": "https://drive.google.com/file/d/your-planner-link/view"
+}
 
 @app.route('/api/salla-webhook', methods=['POST'])
 def salla_webhook():
@@ -12,40 +19,44 @@ def salla_webhook():
         data = request.json
         event = data.get('event')
         
+        # التحقق من اكتمال الطلب في سلة
         if event in ['order.created', 'order.completed']:
             order_data = data.get('data', {})
             customer_email = order_data.get('customer', {}).get('email')
-            customer_name = order_data.get('customer', {}).get('first_name', 'عزيزنا العميل')
             items = order_data.get('items', [])
             
             for item in items:
                 product_name = item.get('name')
                 
-                # استخراج خيارات المنتج أو الإجابات التي كتبها العميل في سلة (Options / Notes)
-                options = item.get('options', [])
-                customer_notes = "وصف الطلب: "
-                for opt in options:
-                    customer_notes += f"- {opt.get('name')}: {opt.get('value')} "
+                # 1. إذا كان المنتج من المنتجات الجاهزة، أرسل رابطه المباشر فوراً
+                if product_name in READY_PRODUCTS_LINKS:
+                    download_link = READY_PRODUCTS_LINKS[product_name]
+                    print(f"إرسال المنتج الجاهز للعميل {customer_email} عبر الرابط: {download_link}")
+                    # (ملاحظة: سيتم ربط خدمة الإرسال الفعلي بالبريد الإلكتروني لاحقاً)
                 
-                # إذا لم يكتب خيارات، نأخذ ملاحظات الطلب العامة
-                if not options:
-                    customer_notes = order_data.get('notes', 'طلب عام لتصميم نشاط تجاري')
+                # 2. إذا كان المنتج يتطلب ذكاءً اصطناعياً وتخصيصاً (مثل صفحات الهبوط للمطاعم/الشركات)
+                else:
+                    # استخراج خيارات العميل أو ملاحظاته من سلة
+                    options = item.get('options', [])
+                    customer_notes = ""
+                    for opt in options:
+                        customer_notes += f"- {opt.get('name')}: {opt.get('value')} \n"
+                    
+                    if not options:
+                        customer_notes = order_data.get('notes', 'طلب تصميم مخصص')
 
-                # توجيه طلب العميل الخاضع لتفضيلاته إلى الذكاء الاصطناعي
-                prompt = f"العميل طلب منتج: {product_name}.\nتفاصيل وتفضيلات العميل المدخلة:\n{customer_notes}\n\nقم بإنشاء محتوى أو هيكل تسويقي احترافي مخصص ومناسب لهذه التفاصيل."
-                
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "أنت خبير تسويق إلكتروني ومصمم محتوى ومواقع ذكي، مهمتك تقديم محتوى احترافي مخصص للعملاء."},
-                        {"role": "user", "content": prompt}
-                    ]
-                )
-                
-                ai_content = response.choices[0].message.content
-                
-                # طباعة أو إرسال المحتوى للعميل (سنربطها بخدمة البريد الإلكتروني لاحقاً)
-                print(f"تم إرسال النتيجة المخصصة إلى {customer_email}:\n{ai_content}")
+                    prompt = f"العميل طلب منتج: {product_name}.\nتفاصيل وتفضيلات العميل المدخلة:\n{customer_notes}\n\nقم بإنشاء محتوى أو هيكل تسويقي احترافي مخصص ومناسب لهذه التفاصيل."
+                    
+                    response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": "أنت خبير تسويق إلكتروني ومصمم محتوى ومواقع ذكي، مهمتك تقديم محتوى احترافي مخصص للعملاء."},
+                            {"role": "user", "content": prompt}
+                        ]
+                    )
+                    
+                    ai_content = response.choices[0].message.content
+                    print(f"تم توليد المحتوى المخصص وإرساله إلى {customer_email}:\n{ai_content[:150]}...")
 
         return jsonify({"status": "success", "message": "Webhook processed successfully"}), 200
 
