@@ -1,67 +1,55 @@
 import os
-from flask import Flask, request, jsonify
+import smtplib
+from email.message import EmailMessage
+from flask import Flask, jsonify, request
 from openai import OpenAI
 
 app = Flask(__name__)
 
-# تهيئة عميل OpenAI باستخدام متغير البيئة في Vercel
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# تهيئة عميل OpenAI تلقائياً من متغيرات البيئة إن وجدت
+client = OpenAI()
 
-# جدول الروابط المباشرة للمنتجات الجاهزة (مثل مجسمات 3D أو المخططات الرقمية)
-READY_PRODUCTS_LINKS = {
-    "مكتبة مجسمات 3D": "https://drive.google.com/drive/folders/your-3d-files-link",
-    "المخطط الرقمي الشامل": "https://drive.google.com/file/d/your-planner-link/view"
-}
 
-@app.route('/api/salla-webhook', methods=['POST'])
-def salla_webhook():
-    try:
-        data = request.json
-        event = data.get('event')
-        
-        # التحقق من اكتمال الطلب في سلة
-        if event in ['order.created', 'order.completed']:
-            order_data = data.get('data', {})
-            customer_email = order_data.get('customer', {}).get('email')
-            items = order_data.get('items', [])
-            
-            for item in items:
-                product_name = item.get('name')
-                
-                # 1. إذا كان المنتج من المنتجات الجاهزة، أرسل رابطه المباشر فوراً
-                if product_name in READY_PRODUCTS_LINKS:
-                    download_link = READY_PRODUCTS_LINKS[product_name]
-                    print(f"إرسال المنتج الجاهز للعميل {customer_email} عبر الرابط: {download_link}")
-                    # (ملاحظة: سيتم ربط خدمة الإرسال الفعلي بالبريد الإلكتروني لاحقاً)
-                
-                # 2. إذا كان المنتج يتطلب ذكاءً اصطناعياً وتخصيصاً (مثل صفحات الهبوط للمطاعم/الشركات)
-                else:
-                    # استخراج خيارات العميل أو ملاحظاته من سلة
-                    options = item.get('options', [])
-                    customer_notes = ""
-                    for opt in options:
-                        customer_notes += f"- {opt.get('name')}: {opt.get('value')} \n"
-                    
-                    if not options:
-                        customer_notes = order_data.get('notes', 'طلب تصميم مخصص')
+@app.route("/")
+def home():
+  return "Smart Pulse AI Server is Running Successfully!"
 
-                    prompt = f"العميل طلب منتج: {product_name}.\nتفاصيل وتفضيلات العميل المدخلة:\n{customer_notes}\n\nقم بإنشاء محتوى أو هيكل تسويقي احترافي مخصص ومناسب لهذه التفاصيل."
-                    
-                    response = client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[
-                            {"role": "system", "content": "أنت خبير تسويق إلكتروني ومصمم محتوى ومواقع ذكي، مهمتك تقديم محتوى احترافي مخصص للعملاء."},
-                            {"role": "user", "content": prompt}
-                        ]
-                    )
-                    
-                    ai_content = response.choices[0].message.content
-                    print(f"تم توليد المحتوى المخصص وإرساله إلى {customer_email}:\n{ai_content[:150]}...")
 
-        return jsonify({"status": "success", "message": "Webhook processed successfully"}), 200
+@app.route("/send-email", methods=["POST"])
+def send_email():
+  try:
+    data = request.json
+    recipient = data.get("email")
+    product_name = data.get("product", "المنتج الرقمي")
 
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+    # توليد رد أو محتوى ذكي عبر الذكاء الاصطناعي اختياري
+    prompt = f"اكتب رسالة شكر ترحيبية قصيرة لعميل اشترى {product_name}."
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=150,
+    )
+    ai_message = response.choices[0].message.content
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    # إعدادات البريد الإلكتروني عبر Gmail SMTP
+    sender_email = os.environ.get("SENDER_EMAIL")
+    sender_password = os.environ.get("SENDER_PASSWORD")
+
+    msg = EmailMessage()
+    msg.set_content(ai_message)
+    msg["Subject"] = f"طلبك جاهز: {product_name}"
+    msg["From"] = sender_email
+    msg["To"] = recipient
+
+    # الاتصال بسيرفر جوجل وإرسال البريد
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+      server.login(sender_email, sender_password)
+      server.send_message(msg)
+
+    return (
+        jsonify({"status": "success", "message": "تم إرسال البريد بنجاح!"}),
+        200,
+    )
+
+  except Exception as e:
+    return jsonify({"status": "error", "message": str(e)}), 500
