@@ -4,9 +4,9 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# إعدادات بوت تيليجرام (تأكد من ضبط المتغيرات في بيئة العمل على Vercel)
+# إعدادات بوت تيليجرام (متوافقة تماماً مع متغيرات بيئة العمل في Vercel)
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "PUT_YOUR_BOT_TOKEN_HERE")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "PUT_YOUR_CHAT_ID_HERE")
+TELEGRAM_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "PUT_YOUR_CHAT_ID_HERE")
 
 
 def send_telegram_message(message):
