@@ -32,6 +32,8 @@ def home():
   })
 
 
+@app.route("/", methods=["POST"])
+@app.route("/api/index", methods=["POST"])
 @app.route("/webhook/salla", methods=["POST"])
 def salla_webhook():
   try:
