@@ -4,12 +4,13 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# إعدادات بوت تيليجرام (متوافقة تماماً مع متغيرات بيئة العمل في Vercel)
+# إعدادات بوت تيليجرام (متوافقة مع متغيرات بيئة العمل في Vercel)
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "PUT_YOUR_BOT_TOKEN_HERE")
 TELEGRAM_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "PUT_YOUR_CHAT_ID_HERE")
 
 
 def send_telegram_message(message):
+  """دالة مخصصة لإرسال الإشعارات إلى بوت تيليجرام الخاص بكِ"""
   if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -27,8 +28,8 @@ def send_telegram_message(message):
 def home():
   return jsonify({
       "status": "online",
-      "project": "FlowAura Agency Automation",
-      "version": "2.0",
+      "project": "FlowAura Agency Automation & AI Engine",
+      "version": "3.0",
   })
 
 
@@ -41,7 +42,7 @@ def salla_webhook():
     event = data.get("event")
     order = data.get("data", {})
 
-    # التحقق من إتمام الطلب وعملية الدفع بنجاح
+    # مراقبة الأحداث الخاصة بإنشاء أو تحديث الطلبات وعمليات الدفع
     if event in [
         "order.created",
         "order.updated",
@@ -53,34 +54,49 @@ def salla_webhook():
       customer_phone = order.get("customer", {}).get("mobile", "غير متوفر")
       total_amount = order.get("amounts", {}).get("total", {}).get("text", "")
 
-      # استخراج اسم الخدمة المطلوبة
+      # استخراج المنتجات والخدمات المطلوبة بدقة
       items = order.get("items", [])
       services_list = []
+      service_type = "خدمة رقمية عامة"
+      
       for item in items:
-        name = item.get("name", "خدمة رقمية")
+        name = item.get("name", "تصميم رقمي")
         qty = item.get("quantity", 1)
         services_list.append(f"- {name} (الكمية: {qty})")
+        
+        # تصنيف نوع الخدمة ذكياً بناءً على اسم المنتج
+        if "3d" in name.lower() or "ثلاثي" in name.lower():
+          service_type = "تصميم ثلاثي الأبعاد (3D)"
+        elif "هوية" in name.lower() or "branding" in name.lower():
+          service_type = "هوية بصرية متكاملة"
 
-      services_text = (
-          "\n".join(services_list)
-          if services_list
-          else "طلب خدمة رقمية عامة"
-      )
+      services_text = "\n".join(services_list) if services_list else "طلب خاص"
 
-      # رسالة التنبيه الفورية التي ستصلكِ على تيليجرام
+      # --- محرك التسليم الآلي (الرد التلقائي للعميل أو توجيه مسار العمل) ---
+      # هنا يمكنكِ تخصيص الروابط أو الملفات التي تُسلّم آلياً حسب نوع الخدمة
+      delivery_instruction = "جاري مراجعة متطلباتك وبدء العمل الإبداعي."
+      if "ثلاثي" in service_type:
+        delivery_instruction = "سيتم إرسال نموذج المعاينة الأولية خلال 24 ساعة."
+      elif "هوية" in service_type:
+        delivery_instruction = "تم استلام استبيان الهوية وبدء مرحلة الأفكار."
+
+      # رسالة التنبيه الإدارية الشاملة التي ستصلكِ على تيليجرام
       notification_text = (
-          f"🚨 *طلب جديد في متجر FlowAura!*\n\n"
+          f"🚀 *طلب مشروع جديد قيد التنفيذ!*\n\n"
           f"📦 *رقم الطلب:* #{order_id}\n"
+          f"🎨 *تصنيف الخدمة:* {service_type}\n"
           f"👤 *اسم العميل:* {customer_name}\n"
           f"📱 *الجوال:* {customer_phone}\n"
           f"💰 *المبلغ الإجمالي:* {total_amount}\n\n"
-          f"🛠 *الخدمات المطلوبة:*\n{services_text}\n\n"
-          f"✨ *الحالة:* جاري المعالجة والتسليم الآلي..."
+          f"🛠 *تفاصيل المنتجات:*\n{services_text}\n\n"
+          f"⚙️ *حالة التسليم الآلي:* {delivery_instruction}\n"
+          f"✨ *الإجراء:* بانتظار لمستك الإبداعية للبدء فوراً!"
       )
 
+      # إرسال التنبيه إلى جهازكِ عبر البوت
       send_telegram_message(notification_text)
 
-    return jsonify({"status": "success", "message": "Webhook processed"}), 200
+    return jsonify({"status": "success", "message": "Automation engine processed successfully"}), 200
 
   except Exception as e:
     print(f"Webhook Error: {e}")
