@@ -1,11 +1,16 @@
 from http.server import BaseHTTPRequestHandler
 import os
 import json
+import urllib.parse
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        path = parsed_path.path
+        query_params = urllib.parse.parse_qs(parsed_path.query)
+
         # خريطة الموقع لأرشفة محركات البحث (Sitemap)
-        if self.path == '/sitemap.xml':
+        if path == '/sitemap.xml':
             self.send_response(200)
             self.send_header('Content-type', 'application/xml; charset=utf-8')
             self.end_headers()
@@ -21,24 +26,34 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(sitemap_content.encode('utf-8'))
             return
 
-        # الواجهة الرئيسية لمنصة فلورا اورا (Flora Aura) بتصميم 3D والهوية البصرية
+        # معالجة طلب التجربة المباشرة للهوية البصرية إذا تم إرسال اسم المشروع
+        test_result_html = ""
+        if path == '/test-identity':
+            brand_name = query_params.get('brand_name', ['مشروع تجريبي'])[0]
+            test_result_html = f"""
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; padding: 25px; border-radius: 12px; margin-top: 30px; text-align: right;">
+                <h3 style="color: #10b981; margin-bottom: 10px;">✅ تم إنشاء وتوليد الهوية البصرية بنجاح!</h3>
+                <p style="color: #fff; margin-bottom: 8px;"><b>اسم المشروع:</b> {brand_name}</p>
+                <p style="color: #9ca3af; font-size: 14px; margin-bottom: 15px;">تم معالجة الشعار، الألوان المقترحة (البرتقالي الداكن والكحلي المستقبلي)، ونموذج اللوحة ثلاثية الأبعاد.</p>
+                <a href="#" onclick="alert('هنا سيتم تحميل ملف الهوية البصرية PDF الخاص بمشروع {brand_name}'); return false;" style="background: #10b981; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">📥 تحميل ملف الهوية البصرية التجريبي</a>
+            </div>
+            """
+
+        # الواجهة الرئيسية لمنصة فلورا اورا (Flora Aura) مع تجربة حية
         self.send_response(200)
         self.send_header('Content-type', 'text/html; charset=utf-8')
         self.end_headers()
         
-        html_content = """
+        html_content = f"""
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>فلورا اورا | Flora Aura - الهويات البصرية المدمجة بتصاميم 3D</title>
-            <meta name="description" content="منصة فلورا اورا المتكاملة لدمج الهويات البصرية على اللوحات، تصاميم ونماذج الـ 3D المتقدمة، وصفحات الهبوط الاحترافية.">
-            <meta name="keywords" content="Flora Aura, فلورا اورا, هوية بصرية, تصاميم ثلاثية الأبعاد, لوحات 3D, صفحات هبوط, السعودية, smartpulseai.net">
-            <meta name="robots" content="index, follow">
-            <link rel="canonical" href="https://www.smartpulseai.net">
+            <title>فلورا اورا | Flora Aura - تجربة الهوية البصرية الحية</title>
+            <meta name="description" content="منصة فلورا اورا المتكاملة لدمج الهويات البصرية والتصاميم ثلاثية الأبعاد.">
             <style>
-                :root {
+                :root {{
                     --bg-color: #070910;
                     --card-bg: #111827;
                     --accent-color: #ff7b00;
@@ -46,20 +61,20 @@ class handler(BaseHTTPRequestHandler):
                     --text-main: #ffffff;
                     --text-muted: #9ca3af;
                     --border-color: #1f2937;
-                }
-                * {
+                }}
+                * {{
                     margin: 0;
                     padding: 0;
                     box-sizing: border-box;
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                }
-                body {
+                }}
+                body {{
                     background-color: var(--bg-color);
                     color: var(--text-main);
                     line-height: 1.6;
                     overflow-x: hidden;
-                }
-                header {
+                }}
+                header {{
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
@@ -70,8 +85,8 @@ class handler(BaseHTTPRequestHandler):
                     position: sticky;
                     top: 0;
                     z-index: 1000;
-                }
-                .logo {
+                }}
+                .logo {{
                     font-size: 24px;
                     font-weight: bold;
                     color: var(--accent-color);
@@ -80,304 +95,111 @@ class handler(BaseHTTPRequestHandler):
                     align-items: center;
                     gap: 10px;
                 }
-                .logo span {
+                .logo span {{
                     color: var(--text-main);
                     font-size: 15px;
                     font-weight: normal;
-                }
-                nav a {
-                    color: var(--text-muted);
-                    text-decoration: none;
-                    margin: 0 15px;
-                    transition: 0.3s;
-                }
-                nav a:hover {
-                    color: var(--accent-color);
-                }
-                /* واجهة بصرية ثلاثية الأبعاد (3D Hero Section) */
-                .hero-3d {
-                    position: relative;
-                    padding: 100px 20px;
-                    text-align: center;
-                    background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-color) 70%);
-                    border-bottom: 1px solid var(--border-color);
-                }
-                .hero-3d h1 {
-                    font-size: 44px;
-                    margin-bottom: 20px;
-                    background: linear-gradient(to left, #fff, #ffaf5f);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                }
-                .hero-3d p {
-                    color: var(--text-muted);
-                    font-size: 19px;
-                    max-width: 750px;
-                    margin: 0 auto 40px auto;
-                }
-                /* منصة عرض الـ 3D التفاعلية للوحة الهوية */
-                .interactive-board-preview {
+                }}
+                .container {{
                     max-width: 900px;
-                    height: 380px;
-                    margin: 0 auto;
-                    background: linear-gradient(145deg, #0f172a, #1e1b4b);
-                    border: 2px solid var(--accent-color);
-                    border-radius: 20px;
-                    box-shadow: 0 0 40px var(--accent-glow);
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    position: relative;
-                    overflow: hidden;
-                    padding: 30px;
-                    text-align: center;
-                }
-                .board-signboard {
-                    background: rgba(0, 0, 0, 0.6);
-                    border: 1px solid rgba(255, 123, 0, 0.5);
-                    padding: 25px 50px;
-                    border-radius: 12px;
-                    box-shadow: inset 0 0 20px rgba(255, 123, 0, 0.2);
-                    transform: perspective(600px) rotateX(5deg);
-                    margin-bottom: 20px;
-                }
-                .board-signboard h2 {
-                    font-size: 32px;
-                    color: var(--accent-color);
-                    letter-spacing: 2px;
-                    text-shadow: 0 0 15px var(--accent-glow);
-                }
-                .board-signboard span {
-                    font-size: 14px;
-                    color: #fff;
-                    letter-spacing: 4px;
-                    display: block;
-                    margin-top: 5px;
-                }
-                .container {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    padding: 60px 20px;
-                }
-                .section-title {
-                    text-align: center;
-                    margin-bottom: 50px;
-                    font-size: 32px;
-                    color: var(--accent-color);
-                }
-                .services-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                    gap: 30px;
-                }
-                .service-card {
+                    margin: 40px auto;
+                    padding: 0 20px;
+                }}
+                .test-box {{
                     background-color: var(--card-bg);
-                    border: 1px solid var(--border-color);
-                    border-radius: 16px;
-                    padding: 35px 30px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    transition: 0.4s;
-                    position: relative;
-                }
-                .service-card:hover {
-                    transform: translateY(-8px);
-                    border-color: var(--accent-color);
-                    box-shadow: 0 10px 30px rgba(255, 123, 0, 0.15);
-                }
-                .service-card h3 {
-                    margin-bottom: 15px;
-                    font-size: 22px;
+                    border: 1px solid var(--accent-color);
+                    border-radius: 20px;
+                    padding: 40px;
+                    box-shadow: 0 0 30px var(--accent-glow);
+                }}
+                .test-box h2 {{
                     color: var(--accent-color);
-                }
-                .service-card p {
+                    margin-bottom: 15px;
+                    font-size: 28px;
+                }}
+                .test-box p {{
                     color: var(--text-muted);
                     margin-bottom: 25px;
-                    font-size: 15px;
-                    flex-grow: 1;
-                }
-                .price-tag {
-                    font-size: 22px;
-                    font-weight: bold;
-                    color: #fff;
+                }}
+                .form-group {{
                     margin-bottom: 20px;
-                }
-                .price-tag span {
-                    font-size: 14px;
-                    color: var(--text-muted);
-                    font-weight: normal;
-                }
-                .btn {
+                    text-align: right;
+                }}
+                .form-group label {{
+                    display: block;
+                    margin-bottom: 8px;
+                    color: var(--text-main);
+                    font-weight: bold;
+                }}
+                .form-group input {{
+                    width: 100%;
+                    padding: 14px;
+                    background: #070910;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    color: #fff;
+                    font-size: 16px;
+                }}
+                .form-group input:focus {{
+                    border-color: var(--accent-color);
+                    outline: none;
+                }}
+                .btn {{
                     background: linear-gradient(135deg, var(--accent-color), #ff5500);
                     color: white;
-                    padding: 14px 20px;
+                    padding: 14px 25px;
                     border-radius: 10px;
                     text-decoration: none;
                     font-weight: bold;
                     display: inline-block;
                     text-align: center;
-                    transition: 0.3s;
                     border: none;
                     cursor: pointer;
                     width: 100%;
+                    font-size: 16px;
                     box-shadow: 0 4px 15px rgba(255, 123, 0, 0.3);
-                }
-                .btn:hover {
+                }}
+                .btn:hover {{
                     opacity: 0.9;
-                    transform: scale(1.02);
-                }
-                /* معلومات المشروع والاعتمادات الرسمية في الأسفل */
-                footer {
-                    background-color: #04060a;
-                    border-top: 1px solid var(--border-color);
-                    padding: 50px 20px 20px;
-                    margin-top: 80px;
-                    color: var(--text-muted);
-                    font-size: 14px;
-                }
-                .footer-content {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                    gap: 30px;
-                    margin-bottom: 40px;
-                }
-                .footer-column h4 {
-                    color: var(--text-main);
-                    margin-bottom: 15px;
-                    font-size: 18px;
-                }
-                .footer-column p, .footer-column a {
-                    color: var(--text-muted);
-                    text-decoration: none;
-                    display: block;
-                    margin-bottom: 8px;
-                }
-                .footer-column a:hover {
-                    color: var(--accent-color);
-                }
-                .copyright {
+                }}
+                footer {{
                     text-align: center;
-                    border-top: 1px solid rgba(31, 41, 55, 0.6);
-                    padding-top: 20px;
+                    padding: 30px;
+                    color: var(--text-muted);
                     font-size: 13px;
-                }
-                .badge-tag {
-                    display: inline-block;
-                    background: rgba(255, 123, 0, 0.12);
-                    color: var(--accent-color);
-                    padding: 8px 16px;
-                    border-radius: 25px;
-                    border: 1px solid rgba(255, 123, 0, 0.3);
-                    font-size: 13px;
-                    margin-top: 12px;
-                }
+                    border-top: 1px solid var(--border-color);
+                    margin-top: 60px;
+                }}
             </style>
         </head>
         <body>
             <header>
-                <a href="#" class="logo">Flora Aura <span>فلورا اورا</span></a>
-                <nav>
-                    <a href="#">الرئيسية</a>
-                    <a href="#services">الخدمات الرقمية</a>
-                    <a href="#3d-showcase">عرض 3D والهوية</a>
-                </nav>
+                <a href="#" class="logo">Flora Aura <span>فلورا اورا - منطقة التجربة الحية</span></a>
                 <div>
-                    <a href="https://wa.me/966580414481" target="_blank" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">تواصل معنا</a>
+                    <a href="/" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">الرئيسية</a>
                 </div>
             </header>
 
-            <!-- واجهة بصرية ثلاثية الأبعاد (3D Hero Section مع لوحة الهوية) -->
-            <section class="hero-3d">
-                <h1>ابتكار الهويات البصرية بتصاميم 3D مذهلة</h1>
-                <p>نحول هويتك الرقمية إلى مجسمات ولوحات ثلاثية الأبعاد تفاعلية تمنح مشروعك حضوراً مستقبلياً لا يُنسى.</p>
-                
-                <div class="interactive-board-preview">
-                    <div class="board-signboard">
-                        <h2>FLORA AURA</h2>
-                        <span>فلورا اورا للحلول الرقمية</span>
-                    </div>
-                    <p style="color: var(--text-muted); font-size: 14px;">✨ معاينة حية لدمج الهوية البصرية على اللوحات ثلاثية الأبعاد</p>
-                </div>
-            </section>
+            <div class="container">
+                <div class="test-box">
+                    <h2>تجربة نظام توليد الهوية البصرية</h2>
+                    <p>أدخل اسم مشروعك أدناه لمعاينة كيف يتجاوب معك النظام، ويعرض لك نتائج الهوية البصرية وملف التحميل التجريبي فوراً:</p>
+                    
+                    <form action="/test-identity" method="GET">
+                        <div class="form-group">
+                            <label for="brand_name">اسم المشروع أو العلامة التجارية:</label>
+                            <input type="text" id="brand_name" name="brand_name" placeholder="مثال: متجر الزهور الذكية" required>
+                        </div>
+                        <button type="submit" class="btn">تجربة توليد الهوية الآن 🚀</button>
+                    </form>
 
-            <!-- أقسام الخدمات الرقمية والأسعار -->
-            <div class="container" id="services">
-                <h2 class="section-title">أقسام الخدمات الرقمية المتقدمة</h2>
-                <div class="services-grid">
-                    <!-- خدمة 1: الهوية البصرية -->
-                    <div class="service-card">
-                        <div>
-                            <h3>خدمات الهوية البصرية</h3>
-                            <p>تصميم شعارات احترافية، دليل العلامة التجارية المتكامل، وتطبيقات الهوية البصرية الشاملة على المطبوعات واللوحات.</p>
-                        </div>
-                        <div>
-                            <div class="price-tag">1,500 ر.س <span>/ المشروع</span></div>
-                            <button onclick="initCheckout('خدمات الهوية البصرية', 1500)" class="btn">اطلب الخدمة وادفع</button>
-                        </div>
-                    </div>
-
-                    <!-- خدمة 2: قوالب وتصميمات 3D -->
-                    <div class="service-card" id="3d-showcase">
-                        <div>
-                            <h3>قوالب وتصميمات 3D</h3>
-                            <p>نماذج وعناصر ثلاثية الأبعاد مخصصة، مع معالجة بصرية فائقة الدقة لعرض المشاريع والمنتجات بأسلوب مستقبلي.</p>
-                        </div>
-                        <div>
-                            <div class="price-tag">2,000 ر.س <span>/ العمل</span></div>
-                            <button onclick="initCheckout('قوالب وتصميمات 3D', 2000)" class="btn">اطلب الخدمة وادفع</button>
-                        </div>
-                    </div>
-
-                    <!-- خدمة 3: صفحات الهبوط -->
-                    <div class="service-card">
-                        <div>
-                            <h3>خدمات صفحات الهبوط</h3>
-                            <p>تصميم وبرمجة صفحات هبوط تسويقية سريعة، جذابة، ومصممة خصيصاً لمضاعفة مبيعات مشاريعك الرقمية.</p>
-                        </div>
-                        <div>
-                            <div class="price-tag">1,200 ر.س <span>/ الصفحة</span></div>
-                            <button onclick="initCheckout('خدمات صفحات الهبوط', 1200)" class="btn">اطلب الخدمة وادفع</button>
-                        </div>
-                    </div>
+                    {test_result_html}
                 </div>
             </div>
 
-            <!-- معلومات المشروع والاعتمادات الرسمية في الأسفل -->
             <footer>
-                <div class="footer-content">
-                    <div class="footer-column">
-                        <h4>عن منصة فلورا اورا (Flora Aura)</h4>
-                        <p>منصة رقمية متخصصة في تقديم أحدث حلول الهويات البصرية، والتصاميم ثلاثية الأبعاد، وصفحات الهبوط.</p>
-                        <div class="badge-tag">وثيقة عمل حر: EAHRSD104060</div>
-                    </div>
-                    <div class="footer-column">
-                        <h4>معلومات التواصل والدعم</h4>
-                        <p>البريد الإلكتروني: info@smartpulseai.net</p>
-                        <p>الهاتف / واتساب: 966580414481</p>
-                    </div>
-                    <div class="footer-column">
-                        <h4>السياسات والأمان</h4>
-                        <p>بوابات دفع إلكترونية معتمدة وآمنة عبر الإنماء.</p>
-                        <p>جميع الحقوق محفوظة لمنصة smartpulseai.net</p>
-                    </div>
-                </div>
-                <div class="copyright">
-                    <p>&copy; 2026 فلورا اورا (Flora Aura) - smartpulseai.net. جميع الحقوق محفوظة.</p>
-                </div>
+                <p>&copy; 2026 فلورا اورا (Flora Aura) - smartpulseai.net | وثيقة عمل حر: EAHRSD104060</p>
             </footer>
-
-            <script>
-                function initCheckout(serviceName, price) {
-                    const confirmed = confirm(`هل أنت متأكد من الانتقال لدفع قيمة "${serviceName}" بمبلغ ${price} ريال سعودي عبر بوابة الدفع الآمنة؟`);
-                    if (confirmed) {
-                        alert('جاري توجيهك إلى بوابة الدفع الإلكترونية المعتمدة (سيتم ربط رابط MyFatoorah المباشر هنا).');
-                    }
-                }
-            </script>
         </body>
         </html>
         """
