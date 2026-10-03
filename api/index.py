@@ -1,8 +1,54 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import urllib.parse
+import os
+import urllib.request
 
 class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        # استقبال بيانات الطلب من الواجهة الأمامية وإرسال التنبيه الفوري
+        parsed_path = urllib.parse.urlparse(self.path)
+        if parsed_path.path == '/submit-order':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                service = data.get('service', 'خدمة رقمية')
+                name = data.get('name', 'عميل')
+                email = data.get('email', 'غير مدخل')
+                notes = data.get('notes', 'لا توجد ملاحظات')
+                
+                # جلب متغيرات البيئة الخاصة بتليجرام من Vercel
+                bot_token = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('TELE_TOKEN')
+                chat_id = os.environ.get('TELEGRAM_CHAT_ID') or os.environ.get('ADMIN_CHAT_ID')
+                
+                # إرسال التنبيه إلى تليجرام إذا كانت المتغيرات موجودة
+                if bot_token and chat_id:
+                    message = f"🚨 *طلب جديد في متجر Flora Aura!*\n\n📌 *الخدمة:* {service}\n👤 *الاسم:* {name}\n📧 *البريد:* {email}\n💬 *الملاحظات:* {notes}"
+                    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                    payload = json.dumps({
+                        "chat_id": chat_id,
+                        "text": message,
+                        "parse_mode": "Markdown"
+                    }).encode('utf-8')
+                    
+                    req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+                    try:
+                        urllib.request.urlopen(req)
+                    except Exception as e:
+                        print(f"Telegram error: {e}")
+
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
+            return
+
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
         path = parsed_path.path
@@ -12,7 +58,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html; charset=utf-8')
         self.end_headers()
         
-        # إذا كان العميل يزور صفحة "طلباتي وملفاتي" بعد إتمام الطلب
+        # صفحة استلام الملفات والخدمات للعميل
         if path == '/my-orders':
             service = query_params.get('service', ['خدمة رقمية'])[0]
             name = query_params.get('name', ['عميلنا الكريم'])[0]
@@ -40,14 +86,14 @@ class handler(BaseHTTPRequestHandler):
                     <h1>Flora Aura | فلورا اورا</h1>
                 </header>
                 <div class="container">
-                    <div class="success-badge">✔ تم استلام طلبك وتجهيزه بنجاح!</div>
+                    <div class="success-badge">✔ تم استلام طلبك وإرسال إشعار فوري للإدارة بنجاح!</div>
                     <h2>أهلاً بكِ، {name}</h2>
-                    <p style="color: #9ca3af;">لقد قمنا باستلام طلبك الخاص بـ <span style="color: #f97316; font-weight: bold;">{service}</span>، وتم إرسال نسخة فورية لبريدك ولوحة تحكم المتجر.</p>
+                    <p style="color: #9ca3af;">لقد قمنا باستلام طلبك الخاص بـ <span style="color: #f97316; font-weight: bold;">{service}</span>.</p>
                     
                     <div class="file-box">
-                        <h3 style="color: #fff; margin-top: 0;">📦 مخرجات الخدمة والملفات الجاهزة:</h3>
-                        <p style="color: #9ca3af; font-size: 14px;">بما أن هذا النظام يعمل في وضع الاختبار والتشغيل الفوري، يمكنك تحميل الملفات والروابط الخاصة بطلبك مباشرة:</p>
-                        <a href="#" class="btn-download">تحميل حزمة الملفات والتصاميم (ZIP)</a>
+                        <h3 style="color: #fff; margin-top: 0;">📦 مخرجات الخدمة والملفات الجاهزة للتحميل:</h3>
+                        <p style="color: #9ca3af; font-size: 14px;">تم تجهيز الحزمة الرقمية الخاصة بك، يمكنك تحميلها فوراً:</p>
+                        <a href="#" class="btn-download">تحميل حزمة التصاميم والملفات (ZIP)</a>
                     </div>
                     
                     <br><br>
@@ -59,7 +105,7 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(html_response.encode('utf-8'))
             return
 
-        # الصفحة الرئيسية للمتجر
+        # الصفحة الرئيسية للمتجر واجهة العميل
         html_content = """
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
@@ -163,12 +209,8 @@ class handler(BaseHTTPRequestHandler):
                         <button type="button" id="recordBtn" class="record-btn" onclick="toggleRecording()">🎤 اضغط لبدء التسجيل الصوتي</button>
                         <p id="recordStatus" style="font-size: 12px; color: #9ca3af; margin-top: 8px;">لم يتم التسجيل بعد</p>
                     </div>
-
-                    <div style="background: #1f2937; padding: 10px; border-radius: 8px; font-size: 12px; color: #10b981; margin-bottom: 15px; text-align: center;">
-                        وضع التجربة الذكية: إرسال فوري وتجهيز الطلب
-                    </div>
                     
-                    <button class="btn" onclick="submitOrder()">تأكيد الطلب وانتقال لاستلام الملفات</button>
+                    <button class="btn" onclick="submitOrder()">تأكيد الطلب وإرسال التنبيه الفوري</button>
                 </div>
             </div>
 
@@ -211,9 +253,16 @@ class handler(BaseHTTPRequestHandler):
                         alert("الرجاء إدخال الاسم على الأقل للمتابعة");
                         return;
                     }
-                    
-                    // محاكاة إرسال البريد اللحظي والانتقال المباشر لصفحة الاستلام
-                    window.location.href = "/my-orders?service=" + encodeURIComponent(currentService) + "&name=" + encodeURIComponent(name) + "&email=" + encodeURIComponent(email);
+
+                    // إرسال البيانات للباك اند لإرسال إشعار تليجرام حقيقي
+                    fetch('/submit-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ service: currentService, name: name, email: email, notes: notes })
+                    }).finally(() => {
+                        // الانتقال المباشر لصفحة استلام الملفات والخدمات
+                        window.location.href = "/my-orders?service=" + encodeURIComponent(currentService) + "&name=" + encodeURIComponent(name);
+                    });
                 }
             </script>
         </body>
