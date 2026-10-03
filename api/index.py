@@ -1,11 +1,9 @@
-# handler.py - Flora Aura (التصميم الأفقي والتجربة الفورية بدون دفع)
+from http.server import BaseHTTPRequestHandler
 
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-class FloraAuraHandler(BaseHTTPRequestHandler):
+class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
-        self.send_header("Content-type", "text/html; charset=utf-8")
+        self.send_header('Content-type', 'text/html; charset=utf-8')
         self.end_headers()
         
         html_content = """
@@ -80,7 +78,7 @@ class FloraAuraHandler(BaseHTTPRequestHandler):
 
             <script>
                 function openOrderPage(serviceName) {
-                    // الانتقال السلس والفوري لصفحة الطلبات والملفات بدون أي تنبيهات أو دفع
+                    // الانتقال السلس والفوري بدون تنبيهات أو دفع
                     window.location.href = "/my-orders?service=" + encodeURIComponent(serviceName);
                 }
             </script>
@@ -88,12 +86,3 @@ class FloraAuraHandler(BaseHTTPRequestHandler):
         </html>
         """
         self.wfile.write(html_content.encode('utf-8'))
-
-def run(server_class=HTTPServer, handler_class=FloraAuraHandler, port=8000):
-    server_address = ('', port)
-    httpd = server_class(server_address, handler_class)
-    print(f"Server running on http://localhost:{port}...")
-    httpd.serve_forever()
-
-if __name__ == '__main__':
-    run()
